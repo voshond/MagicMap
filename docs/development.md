@@ -50,6 +50,12 @@ The demo's assets, after the above: [demo/README.md](../demo/README.md).
 ## Install and try it in game
 
     .venv/bin/python tools/install.py      # into _forever_ (WoW Forever); another flavor folder as argument
+    .venv/bin/python tools/install.py --host arch   # into the client on another machine, over ssh + rsync
+
+`--host` (default `$MAGICMAP_HOST`; `--host ""` installs here) runs the same checks against the host's
+AddOns folder (one `ssh host python3 -`) and rsyncs the staged, stamped build there; its WoW folder is
+`--wow`, else `$MAGICMAP_HOST_WOW`, else arch's Faugus install (`HOST_WOW` in tools/install.py). The host
+needs python3 and rsync.
 
 It writes the TOC from the folders' `files.txt` (`--toc`: only that), then copies the TOC, its
 files and Textures/ into `Interface/AddOns/MagicMap`. That is 1.0's folder too: while 1.0 is there it stops,
