@@ -937,6 +937,8 @@ local TEMPLATES = { UIPanelCloseButton = true, UIPanelButtonTemplate = true, Gam
 	BackdropTemplate = true }
 -- What a template or a frame type makes in a new frame (its regions, its intrinsic scripts): filled in below.
 local TEMPLATE_SETUP, TYPE_SETUP = {}, {}
+-- The scripts they set: the client's own, not the addon's (Sim.Intrinsic).
+local INTRINSIC = setmetatable({}, { __mode = "k" })
 
 function CreateFrame(typ, name, parent, template)
 	local cls = FRAME_TYPES[typ]
@@ -968,6 +970,10 @@ function CreateFrame(typ, name, parent, template)
 	if TYPE_SETUP[cls] then TYPE_SETUP[cls](f) end
 	for t in tostring(template or ""):gmatch("[^,%s]+") do
 		if TEMPLATE_SETUP[t] then TEMPLATE_SETUP[t](f) end
+	end
+	for _, s in pairs(S[f].scripts) do
+		INTRINSIC[s.main] = true
+		for _, h in pairs(s.hooks) do INTRINSIC[h] = true end
 	end
 	return f
 end
@@ -1120,6 +1126,7 @@ end
 
 -- Every frame, created in order (for scenarios to find buttons etc.).
 function Sim.Frames() return allFrames end
+function Sim.Intrinsic(fn) return INTRINSIC[fn] == true end -- a script a frame type or template set, not the addon
 function Sim.Named(name) return named[name] end
 
 ---------------------------------------------------------------------------
@@ -1243,7 +1250,8 @@ for i, path in ipairs({ "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up", "Inter
 	"Interface\\Minimap\\PartyRaidBlipsV2", "Interface\\GossipFrame\\VendorGossipIcon", "Interface\\Icons\\Ability_Tracking",
 	"Interface\\Icons\\INV_Misc_EngGizmos_01", "Interface\\Buttons\\UI-PlusButton-Up", "Interface\\Buttons\\UI-MinusButton-Up",
 	"Interface\\Buttons\\UI-PlusButton-Hilight", "Interface\\Minimap\\MinimapArrow",
-	"Interface\\Common\\UI-TooltipDivider-Transparent" }) do
+	"Interface\\Common\\UI-TooltipDivider-Transparent", "Interface\\Tooltips\\UI-Tooltip-Border",
+	"Interface\\Tooltips\\UI-Tooltip-Background" }) do
 	FILES[path:lower()] = 100000 + i
 end
 function GetFileIDFromPath(path) return FILES[(path:lower():gsub("/", "\\"))] end
@@ -1683,6 +1691,17 @@ function Sim.Pick(e)
 	if r ~= MenuResponse.Open and r ~= MenuResponse.Refresh then Sim.menu = nil end
 	if menu and menu.owner then dropdownText(menu.owner, dropdownMenu(menu.owner)) end
 	return r
+end
+
+-- BackdropTemplate (Blizzard_SharedXMLBase/Backdrop.lua): what it was given, to read back.
+TEMPLATE_SETUP.BackdropTemplate = function(f)
+	f.SetBackdrop = function(self, b) S[self].backdrop = b end
+	f.GetBackdrop = function(self) return S[self].backdrop end
+	f.SetBackdropBorderColor = function(self, r, g, b, a) S[self].backdropBorder = { r, g, b, a or 1 } end
+	f.GetBackdropBorderColor = function(self)
+		local c = S[self].backdropBorder or { 1, 1, 1, 1 }
+		return c[1], c[2], c[3], c[4]
+	end
 end
 
 -- ColorSwatchTemplate (Blizzard_SharedXMLBase/ColorSwatch.xml): a 16 px swatch, its border white, gold under the cursor.

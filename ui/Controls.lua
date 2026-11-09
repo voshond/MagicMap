@@ -77,10 +77,9 @@ Controls.mode, Controls.gear = mode, gear
 
 local zoomOut = ArtButton(Chrome.controls, 20, 11, ZoomArt("ui-hud-minimap-zoom-out"))
 -- The quest pill's gap from the window's left and bottom borders is one: the border's insets differ, so its
--- bottom offset makes up the difference (BOTTOM_Y), and the zoom buttons drop by as much (clear of the grip).
-local insets = Chrome.border.insets
-local BOTTOM_Y = math.max(2, PAD + insets[1] - insets[4])
-zoomOut:SetPoint("BOTTOMRIGHT", -PAD, BOTTOM_Y + 6)
+-- bottom offset makes up the difference (bottomY), and the zoom buttons drop by as much (clear of the grip). Set from
+-- the border shown (Chrome.OnInsets, below the pill's Place).
+local bottomY
 local zoomIn = ArtButton(Chrome.controls, 20, 20, ZoomArt("ui-hud-minimap-zoom-in"))
 zoomIn:SetPoint("BOTTOM", zoomOut, "TOP", 0, 2)
 Controls.zoomIn, Controls.zoomOut = zoomIn, zoomOut
@@ -151,7 +150,6 @@ local BAR_COLORS = {
 -- and fades with the controls otherwise (the step below).
 local overlay = Chrome.overlay
 local line = CreateFrame("Frame", nil, overlay)
-line:SetPoint("BOTTOMLEFT", PAD, BOTTOM_Y)
 line:SetHeight(LINE_H)
 line:Hide()
 local tracked = false -- the line shows a target (or the followed quest)
@@ -482,8 +480,14 @@ local function Place()
 	local sc = PILL.scale
 	line:SetScale(sc)
 	line:ClearAllPoints()
-	line:SetPoint("BOTTOMLEFT", PAD / sc, BOTTOM_Y / sc) -- /: never 0 (the scale's least is 0.8)
+	line:SetPoint("BOTTOMLEFT", PAD / sc, bottomY / sc) -- /: never 0 (the scale's least is 0.8)
 end
+Chrome.OnInsets(function(insets)
+	bottomY = math.max(2, PAD + insets[1] - insets[4])
+	zoomOut:ClearAllPoints()
+	zoomOut:SetPoint("BOTTOMRIGHT", -PAD, bottomY + 6)
+	Place()
+end)
 
 -- The buttons' and the pill's alphas from the hover's fade: the buttons from Buttons at rest (away) to 1 (over).
 local rest = 0
@@ -631,6 +635,9 @@ UI.Feel.Add("general", "Map window", {
 	{ key = "controls.rest", kind = "slider", label = "Buttons at rest", min = 0, max = 1, step = 0.05, pct = true, default = rest,
 		apply = function(v) rest = v; Reveal() end,
 		tip = "How much the map's buttons (gear, zoom, grow) and its resize grip show while you're not pointing at the map. 0%: hidden till you do." },
+	{ key = "general.border", kind = "select", label = "Border", default = "metal", apply = Chrome.SetBorder,
+		options = { { "Metal", "metal" }, { "Tooltip", "tooltip" } },
+		tip = "The map window's frame: the client's metal border, or Blizzard's thin tooltip edge." },
 })
 local function Pill(key) return function(v) SetPill(key, v) end end
 local function QuestPill() return UI.Feel.Get("pills.questShow") ~= "off" end

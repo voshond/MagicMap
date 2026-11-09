@@ -52,6 +52,8 @@ local Art = {
 		"Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up",        -- ui/Chrome.lua: the grip
 		"Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight",
 		"Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down",
+		"Interface\\Tooltips\\UI-Tooltip-Border",             -- ui/Chrome.lua: the Tooltip border, its edge
+		"Interface\\Tooltips\\UI-Tooltip-Background",         -- and the dark behind it
 		"Interface\\WorldMap\\Gear_64",                           -- ui/Controls.lua: the gear
 		"Interface\\CharacterFrame\\TempPortraitAlphaMask",       -- CIRCLE: ui/Chrome.lua, ui/Pins.lua (dots); game/Button.lua
 		"Interface\\HUD\\UIMinimap2xC60", "Interface\\Icons\\INV_Misc_Map_01", -- game/Button.lua: ring, icon
