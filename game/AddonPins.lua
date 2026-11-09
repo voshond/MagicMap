@@ -438,6 +438,40 @@ function Game.MinimapPinsHome()
 	wipe(placed)
 end
 
+-- /mm hover: in 3 s (time to point at a pin), what has the mouse and every borrowed pin under the cursor, with what
+-- decides whether it can take it (shown, mouse flags, strata, level, its parent's rect).
+local function Describe(f)
+	local l, b, w, h = f:GetRect()
+	return string.format("%s %s/%d shown %s mouse %s/%s rect %s", f:GetDebugName(), f:GetFrameStrata(), f:GetFrameLevel(),
+		tostring(f:IsVisible()), tostring(f:IsMouseClickEnabled()), tostring(f:IsMouseMotionEnabled()),
+		l and string.format("%.0f,%.0f %.0fx%.0f", l, b, w, h) or "none")
+end
+Game.Slash("hover", "in 3 s: what has the mouse, and the borrowed pins under the cursor", function()
+	Game.Print("hover: point at a pin; reading in 3 s")
+	Runtime.After(3, "game.addon pins: hover", function()
+		local foci = GetMouseFoci()
+		Game.Print(string.format("hover: %d with the mouse", #foci))
+		for _, f in ipairs(foci) do Game.Print("  focus " .. Describe(f)) end
+		local n = 0
+		for icon in pairs(hosted) do
+			if icon:IsMouseOver() then
+				n = n + 1
+				Game.Print("  pin " .. Describe(icon))
+				local p = icon:GetParent()
+				while p and p ~= UIParent do
+					Game.Print("    in " .. Describe(p) .. (p.GetClipsChildren and p:GetClipsChildren() and " clips" or ""))
+					p = p:GetParent()
+				end
+			end
+		end
+		Game.Print(string.format("hover: %d borrowed pins under the cursor (%d borrowed)", n, (function()
+			local c = 0
+			for _ in pairs(hosted) do c = c + 1 end
+			return c
+		end)()))
+	end)
+end)
+
 Game.Apply("addon pins", function(view)
 	WorldPins(view)
 	MinimapPins(view)

@@ -1068,6 +1068,20 @@ end
 Sim.cursorX, Sim.cursorY = UI_W / 2, UI_H / 2
 Sim.buttonsDown = {}
 
+-- The frames with the mouse (the client's: the topmost under the cursor that takes it); here: the shown frames taking
+-- the mouse whose rect holds the cursor, the highest strata and level first.
+local STRATA_ORDER = { WORLD = 0, BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8 }
+function GetMouseFoci()
+	local best, bs, bl
+	for _, f in ipairs(allFrames) do
+		if S[f].mouseMotion and f:IsVisible() and f:IsMouseOver() then
+			local st, lv = STRATA_ORDER[f:GetFrameStrata()] or 3, f:GetFrameLevel()
+			if not best or st > bs or st == bs and lv >= bl then best, bs, bl = f, st, lv end
+		end
+	end
+	return { best }
+end
+
 function Sim.MoveCursorTo(frame, fx, fy)
 	local l, b, w, h = rect(frame)
 	assert(l, "MoveCursorTo: frame has no position")
