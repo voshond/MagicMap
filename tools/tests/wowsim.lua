@@ -92,11 +92,13 @@ local function isA(obj, name)
 	return false
 end
 
+local made = 0 -- widgets made: each one's creation order (draw order among equals: tools/proof's renders)
 local function new(typ, name, parent)
 	local obj = setmetatable({}, classes[typ].mt)
+	made = made + 1
 	S[obj] = {
 		type = typ, name = name, parent = parent, points = {}, shown = true, alpha = 1, scale = 1,
-		children = {}, regions = {}, scripts = {}, events = {}, level = 0, strata = "MEDIUM",
+		children = {}, regions = {}, scripts = {}, events = {}, level = 0, strata = "MEDIUM", order = made,
 	}
 	if name then
 		named[name] = obj
@@ -498,8 +500,8 @@ function FontString:GetTextColor()
 	local c = S[self].textRGBA or { 1, 1, 1, 1 }
 	return c[1], c[2], c[3], c[4]
 end
-function FontString:SetJustifyH(j) assert(j == "LEFT" or j == "CENTER" or j == "RIGHT", "SetJustifyH: bad value") end
-function FontString:SetJustifyV(j) end
+function FontString:SetJustifyH(j) assert(j == "LEFT" or j == "CENTER" or j == "RIGHT", "SetJustifyH: bad value"); S[self].justifyH = j end
+function FontString:SetJustifyV(j) S[self].justifyV = j end
 function FontString:SetShadowOffset(x, y) end
 function FontString:SetShadowColor(r, g, b, a) end
 function FontString:SetWordWrap(on) end
@@ -606,7 +608,7 @@ function Frame:IsMovable() return S[self].movable end
 function Frame:SetResizable(on) S[self].resizable = on end
 function Frame:SetClampedToScreen(on) S[self].clamped = not not on end
 function Frame:IsClampedToScreen() return S[self].clamped == true end
-function Frame:SetClipsChildren(on) end
+function Frame:SetClipsChildren(on) S[self].clips = not not on end
 function Frame:SetHitRectInsets(l, r, t, b)
 	assert(type(l) == "number" and type(r) == "number" and type(t) == "number" and type(b) == "number", "SetHitRectInsets: numbers expected")
 	S[self].hitInsets = { l, r, t, b }
@@ -1686,8 +1688,13 @@ TEMPLATE_SETUP.WowStyle1DropdownTemplate = function(f)
 	f.Background:SetAtlas("common-dropdown-textholder")
 	f.Arrow = f:CreateTexture(nil, "ARTWORK")
 	f.Arrow:SetAtlas("common-dropdown-a-button")
+	f.Background:SetAllPoints()
+	f.Arrow:SetPoint("RIGHT", -2, 0)
+	f.Arrow:SetSize(20, 20)
 	f.Text = f:CreateFontString(nil, "ARTWORK")
 	f.Text:SetFontObject(GameFontHighlight)
+	f.Text:SetPoint("LEFT", 8, 0)
+	f.Text:SetPoint("RIGHT", f.Arrow, "LEFT", -2, 0)
 end
 
 -- A menu entry clicked: its onSelect, then the menu closes (unless it answers Refresh or Open), and a dropdown that
