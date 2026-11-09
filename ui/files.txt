@@ -30,6 +30,7 @@ ui/QuestTooltip.lua
 ui/Areas.lua
 ui/Quests.lua
 ui/ZoneInfo.lua
+ui/MapPicker.lua
 ui/Sockets.lua
 ui/You.lua
 ui/Group.lua

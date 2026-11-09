@@ -361,37 +361,40 @@ function Menus.ShowMap(inst)
 	UI.Window.frame:Show()
 end
 
-function Menus.Picker(owner)
+-- The picker's rows, into root: the title's menu and the big map's dropdown (ui/MapPicker.lua) alike.
+function Menus.PickerRows(root)
 	local g = Groups()
-	Menus.Show(owner, function(_, root)
-		local function Radio(parent, m)
-			parent:CreateRadio(m.name, function() return UI.Camera.inst == m.inst end, function()
-				Pick(Menus.ShowMap, m.inst)
-				return MenuResponse.Close
-			end)
-		end
-		root:CreateTitle("Continents")
-		for _, m in ipairs(g.continents) do Radio(root, m) end
-		if g.others[1] then
-			local other = root:CreateButton("Other maps")
-			for _, m in ipairs(g.others) do Radio(other, m) end
-		end
-		if g.dungeon[1] or g.raid[1] then
-			root:CreateDivider()
-			root:CreateTitle("Instances")
-			for _, k in ipairs(KINDS) do
-				local groups = g[k[1]]
-				if groups[1] then
-					local kind = root:CreateButton(k[2])
-					for _, group in ipairs(groups) do
-						-- Only one group: the continent level skipped.
-						local parent = groups[2] and kind:CreateButton(group.name) or kind
-						for _, m in ipairs(group.maps) do Radio(parent, m) end
-					end
+	local function Radio(parent, m)
+		parent:CreateRadio(m.name, function() return UI.Camera.inst == m.inst end, function()
+			Pick(Menus.ShowMap, m.inst)
+			return MenuResponse.Close
+		end)
+	end
+	root:CreateTitle("Continents")
+	for _, m in ipairs(g.continents) do Radio(root, m) end
+	if g.others[1] then
+		local other = root:CreateButton("Other maps")
+		for _, m in ipairs(g.others) do Radio(other, m) end
+	end
+	if g.dungeon[1] or g.raid[1] then
+		root:CreateDivider()
+		root:CreateTitle("Instances")
+		for _, k in ipairs(KINDS) do
+			local groups = g[k[1]]
+			if groups[1] then
+				local kind = root:CreateButton(k[2])
+				for _, group in ipairs(groups) do
+					-- Only one group: the continent level skipped.
+					local parent = groups[2] and kind:CreateButton(group.name) or kind
+					for _, m in ipairs(group.maps) do Radio(parent, m) end
 				end
 			end
 		end
-	end)
+	end
+end
+
+function Menus.Picker(owner)
+	Menus.Show(owner, function(_, root) Menus.PickerRows(root) end)
 end
 
 Command({ kind = "slash", name = "map", help = "<id|name>: show a map whole; alone, list them", fn = function(arg)

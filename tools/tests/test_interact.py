@@ -4,6 +4,8 @@ input), as the spike's (Core.lua:1161-1240, 1247-1416, 1698-1735; Layers.lua:178
   test_picker: the title's click opens the map picker: Continents (300 tiles or more), Other maps, Instances by
     kind and the continent their entrance is on, a lone group's level skipped; a pick shows the map whole, following
     off; a drag of the title picks nothing (F4, S60).
+  test_picker_dropdown: the big map's dropdown (ui/MapPicker.lua) shows on the big map alone, names the map shown and
+    opens the same picker; a pick shows that map whole, following off, and the dropdown names it.
   test_map_and_zone: /mm map alone lists the maps, by id or name shows one whole; an instance's map shown whole has
     no arrow, line to your waypoint, blips or names (the exit's instance-map scenario); /mm zone flies to a zone (0.55 s, fit
     0.92, following off), with the spike's messages (F18).
@@ -98,6 +100,29 @@ def test_picker():
     assert items(sim.menu) == [("title", "Continents"), ("radio", "Eastern Kingdoms"), ("divider", None),
                                ("title", "Instances"), ("button", "Dungeons")]
     assert items(sub(sim.menu, "Dungeons")) == [("radio", "Deadmines"), ("radio", "Shadowfang Keep")]
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_picker_dropdown():
+    L, sim, ns, G = client([])
+    UI = ns.UI
+    drop = UI.MapPicker.drop
+    sim.Run(0.2)
+    assert not drop.IsShown(drop)
+    sim.Press("M")
+    sim.Run(0.5)
+    assert UI.BigMap.big and drop.IsShown(drop) and drop.Text.GetText(drop.Text) == "Eastern Kingdoms"
+    sim.FireScript(drop, "OnMouseDown", "LeftButton")
+    assert drop.IsMenuOpen(drop)
+    assert items(sim.menu)[:3] == [("title", "Continents"), ("radio", "Eastern Kingdoms"), ("radio", "Kalimdor")]
+    sim.Pick(sub(sim.menu, "Kalimdor"))
+    sim.Run(0.5)
+    r = ns.Atlas.MapRect(ns.Atlas.Continent(1))
+    assert UI.Camera.inst == 1 and not UI.Camera.follow and near(cam(ns), fit(L, ns, r, 1.0))
+    assert drop.Text.GetText(drop.Text) == "Kalimdor" and UI.BigMap.big
+    sim.Press("M")
+    sim.Run(0.5)
+    assert not UI.BigMap.big and not drop.IsShown(drop)
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 
