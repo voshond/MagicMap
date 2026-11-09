@@ -628,7 +628,11 @@ function Frame:SetResizeBounds(minW, minH, maxW, maxH) end
 local Button = class("Button", "Frame")
 local function buttonTexture(self, key, tex)
 	if type(tex) == "string" or type(tex) == "number" then
-		local t = S[self][key] or self:CreateTexture(nil, "ARTWORK")
+		local t = S[self][key]
+		if not t then -- (the client's fills its button)
+			t = self:CreateTexture(nil, "ARTWORK")
+			t:SetAllPoints()
+		end
 		t:SetTexture(tex)
 		tex = t
 	end
@@ -2064,6 +2068,8 @@ ATLASES["Minimal_SliderBar_Button_Left"], ATLASES["Minimal_SliderBar_Button_Righ
 ATLASES["common-icon-undo"], ATLASES["auctionhouse-ui-filter-redx"] = { 256, 256 }, { 46, 46 }
 ATLASES["Options_HorizontalDivider"] = { 630, 1 }
 ATLASES["common-dropdown-textholder"], ATLASES["common-dropdown-a-button"] = { 54, 41 }, { 27, 27 }
+-- The list headers' fold buttons (ListTemplates.lua): the plus a cross, the minus a bar (illustrative sizes).
+ATLASES["common-button-list-plus"], ATLASES["common-button-list-minus"] = { 15, 15 }, { 15, 5 }
 for _, name in ipairs({ "minimal-scrollbar-arrow-top", "minimal-scrollbar-arrow-bottom", "minimal-scrollbar-arrow-top-over",
 	"minimal-scrollbar-arrow-bottom-over" }) do
 	ATLASES[name] = { 17, 11 }

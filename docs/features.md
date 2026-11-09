@@ -50,7 +50,8 @@ in its difficulty's colour with what it still needs under it (done: ready for tu
 the log holds. The box puts a quest in Blizzard's tracker or takes it out; a click follows it and flies the map to
 its pin (else its zone whole, on its own continent); hovering lights its area and shows its tooltip; right-click to
 Track, Follow, Share, Abandon or open it in the quest log. The map narrows to leave room for it; a big window too
-narrow for both has none. Settings > Quest areas > Quest log turns it off.
+narrow for both has none. The chevron at the map's top right puts it away (>) and brings it back (<), as Settings >
+Quest areas > Quest log does.
 
 ![The big map over Durotar: subzone names, quest areas and pins, and the line to a waypoint](images/big-map-durotar-route.jpg)
 

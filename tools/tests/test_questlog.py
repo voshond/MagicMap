@@ -129,6 +129,32 @@ def test_questlog_panel():
     sim.Click(row(ns, "Elwynn Forest"))
     assert len(rows(ns)) == 5 and not UI.saved.questCollapsed["Elwynn Forest"]
 
+    # A header's fold button at its atlas's own size: the minus a bar, the plus a cross (not squashed square).
+    elwynn = row(ns, "Elwynn Forest")
+    assert elwynn.icon.GetAtlas(elwynn.icon) == "common-button-list-minus" and sim.state[elwynn.icon].height == 5
+    sim.Click(elwynn)
+    elwynn = row(ns, "Elwynn Forest")
+    assert elwynn.icon.GetAtlas(elwynn.icon) == "common-button-list-plus" and sim.state[elwynn.icon].height == 15
+    sim.Click(elwynn)
+    candles = row(ns, "[7] Kobold Candles")
+    assert sim.state[candles.icon].width == 16 and sim.state[candles.icon].height == 16
+
+    # The chevron at the map's top right: ">" puts it away (the setting with it), "<" brings it back.
+    toggle = ql.toggle
+
+    def chevron():
+        return sim.state[sim.state[toggle].normal].texture
+    assert toggle.IsShown(toggle) and "NextPage-Up" in chevron()
+    assert abs(toggle.GetRight(toggle) - view.GetRight(view) + 2) < 1e-6
+    sim.Click(toggle)
+    sim.Run(0.1)
+    assert not panel.IsShown(panel) and UI.Chrome.side == 0 and UI.Feel.Get("questlog.sidebar") is False
+    assert toggle.IsShown(toggle) and "PrevPage-Up" in chevron()
+    assert abs(toggle.GetRight(toggle) - f.GetRight(f)) < 10  # (against the border now)
+    sim.Click(toggle)
+    sim.Run(0.1)
+    assert panel.IsShown(panel) and UI.Chrome.side == 300 and "NextPage-Up" in chevron()
+
     # Off in Settings: gone, the map whole; on again: back.
     UI.Feel.Set("questlog.sidebar", False)
     sim.Run(0.1)
@@ -141,7 +167,7 @@ def test_questlog_panel():
     assert not panel.IsShown(panel) and UI.Chrome.side == 0
     f.Show(f)
     sim.Run(0.2)
-    assert not UI.BigMap.big and not panel.IsShown(panel)
+    assert not UI.BigMap.big and not panel.IsShown(panel) and not ql.toggle.IsShown(ql.toggle)
     # A big window too narrow for it: none.
     assert ql.Room(650) == 0 and ql.Room(800) == 300
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))

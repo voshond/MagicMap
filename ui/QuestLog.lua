@@ -11,7 +11,8 @@
 -- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin.
 -- A click follows it (the follow Command: Blizzard's super-tracked quest) and flies the map there: to its pin, else
 -- its zone whole. A right-click: Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
--- The wheel scrolls it. Settings > Quest areas > Quest log > Quest log on the big map turns it off.
+-- The wheel scrolls it. The chevron at the map's top right puts it away and brings it back, as Settings > Quest areas
+-- > Quest log > Quest log on the big map does.
 
 local _, ns = ...
 local UI, Model, Atlas, Runtime = ns.UI, ns.Model, ns.Atlas, ns.Runtime
@@ -245,10 +246,10 @@ local function Header(row, r)
 	local folded = Collapsed()[r.title]
 	row:SetHeight(HEADER_H)
 	row.icon:ClearAllPoints()
-	row.icon:SetPoint("LEFT", PAD, 0)
-	row.icon:SetSize(ICON - 2, ICON - 2)
-	Art(row.icon, folded and PLUS or MINUS)
-	row.icon:SetShown(Has(folded and PLUS or MINUS))
+	row.icon:SetPoint("CENTER", row, "LEFT", PAD + (ICON - 2) / 2, 0)
+	local atlas = folded and PLUS or MINUS
+	if Has(atlas) then row.icon:SetAtlas(atlas, true) end -- (its own size, as CollapseButtonMixin: the minus is a bar)
+	row.icon:SetShown(Has(atlas))
 	row.text:SetFontObject(GameFontHighlight)
 	row.text:ClearAllPoints()
 	row.text:SetPoint("LEFT", PAD + ICON + 4, 0)
@@ -266,9 +267,9 @@ local function Quest(row, r)
 	if r.failed then name = name .. " (Failed)" end
 	row.icon:ClearAllPoints()
 	row.icon:SetPoint("TOPLEFT", PAD, -1)
-	row.icon:SetSize(ICON, ICON)
 	local atlas = r.complete and TURN_IN or ACTIVE
 	Art(row.icon, atlas)
+	row.icon:SetSize(ICON, ICON) -- (after SetAtlas: a header's left it at its atlas's size)
 	row.icon:SetShown(not r.failed and Has(atlas))
 	row.text:SetFontObject(GameFontNormal)
 	row.text:ClearAllPoints()
@@ -336,13 +337,40 @@ QuestLog.Layout = Layout
 ---------------------------------------------------------------------------
 
 -- px it takes off the map's right in a big window w wide: WIDTH, or 0 (off, or a window too narrow for it).
+local function Fits(w) return w - WIDTH >= MIN_MAP end
 function QuestLog.Room(w)
-	return QuestLog.on and w - WIDTH >= MIN_MAP and WIDTH or 0
+	return QuestLog.on and Fits(w) and WIDTH or 0
 end
+
+-- The toggle: a chevron at the map's top right, against the panel (Blizzard's spellbook page arrows): right, ">",
+-- puts the panel away; left, "<", brings it out. The same setting as Settings' (questlog.sidebar). Shown on the big
+-- map once grown, where the window has room for the panel.
+local CHEVRON = "Interface\\Buttons\\UI-SpellbookIcon-%sPage-%s"
+local TOGGLE = 26
+local toggle = CreateFrame("Button", nil, Chrome.overlay)
+toggle:SetSize(TOGGLE, TOGGLE)
+toggle:SetPoint("TOPRIGHT", -2, -2)
+toggle:Hide()
+QuestLog.toggle = toggle
+local function ToggleLook()
+	local way = QuestLog.on and "Next" or "Prev"
+	toggle:SetNormalTexture(CHEVRON:format(way, "Up"))
+	toggle:SetPushedTexture(CHEVRON:format(way, "Down"))
+	toggle:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	toggle.on = QuestLog.on
+end
+ToggleLook()
+toggle:SetScript("OnClick", Runtime.Wrap("map: quest log toggle", function()
+	UI.Feel.Set("questlog.sidebar", not QuestLog.on)
+end, Runtime.FRAME_MS))
+UI.Controls.Tip(toggle, function() return QuestLog.on and "Hide quest log" or "Show quest log" end)
 
 Runtime.Step("ui", "map: quest log", function()
 	local big = UI.BigMap
-	local want = big.big == true and (panel:IsShown() or not big.Tweening()) and QuestLog.Room(frame:GetWidth()) > 0
+	local grown = big.big == true and (panel:IsShown() or not big.Tweening()) and Fits(frame:GetWidth())
+	local want = grown and QuestLog.on
+	if toggle:IsShown() ~= grown then toggle:SetShown(grown) end
+	if toggle.on ~= QuestLog.on then ToggleLook() end
 	if panel:IsShown() ~= want then
 		panel:SetShown(want)
 		Chrome.SetSide(want and WIDTH or 0)
@@ -351,9 +379,10 @@ Runtime.Step("ui", "map: quest log", function()
 	local log = Model.questlog
 	if (log and log.rev) ~= laidRev then Layout() end
 end, { shownOnly = frame, budgetMs = Runtime.FRAME_MS }) -- (the first layout makes every row's widgets: the frame's budget)
--- Hidden while big comes back small (ui/BigMap.lua): the panel goes with it, not shown again with the window.
+-- Hidden while big comes back small (ui/BigMap.lua): the panel and its chevron go with it, not shown again with the window.
 frame:HookScript("OnHide", Runtime.Wrap("map: quest log hidden", function()
 	panel:Hide()
+	toggle:Hide()
 	Chrome.SetSide(0)
 end))
 
