@@ -1,6 +1,6 @@
 """Other addons' HereBeDragons pins on our map, on the sim (docs/v1-plan.md M4.2, game/AddonPins.lua):
 world pins past 48 px a tile only those flagged for continents, none drawn for the library's own map
-alone (-1) or bigger than 128 px; Questie's turn-ins too (ours are Blizzard's blips: our quests layer draws none); minimap pins on a
+alone (-1) or bigger than 128 px, nor an untracked quest's (but one to pick up, or the followed); Questie's turn-ins too (ours are Blizzard's blips: our quests layer draws none); minimap pins on a
 host of Game's on the minimap socket, centred on you at the Minimap's view, each where the library
 puts it, so on its spot on our map, out of sight under Rotate Minimap, off your map and for a renamed
 copy whose world pins we host, back on the Minimap at release.
@@ -40,6 +40,7 @@ def test_world_pins():
     sim.Run(3)
     q = sim.LoadQuestie()
     sim.FireEvent("ADDON_LOADED", "Questie")
+    sim.watches[60], sim.watches[62] = True, True  # (in Blizzard's tracker, as the client puts a quest taken)
     view = ns.UI.View()
     icons = world_pins(L, sim, q)
     canvas = view.sockets.world.frame
@@ -67,6 +68,25 @@ def test_world_pins():
     ns.UI.Engine.SetLayer("quests", False)  # ours off: Questie's turn-in still shown, by the next regular pass
     sim.Run(1.1)
     assert "turnIn" in hosted(L, icons, canvas)
+
+    # Only tracked quests on the map: 60 untracked, its icon goes (62's to pick up stays: Questie's rule); followed, it's
+    # back; the setting off, every one.
+    C = L.globals().C_QuestLog
+    C.RemoveQuestWatch(60)
+    sim.Run(0.5)
+    assert "notDone" not in hosted(L, icons, canvas) and "offer" in hosted(L, icons, canvas)
+    sim.superTracked = 60
+    sim.FireEvent("SUPER_TRACKING_CHANGED")
+    ns.UI.Engine.SetLayer("quests", True)
+    sim.Run(1.1)
+    assert "notDone" in hosted(L, icons, canvas)
+    sim.superTracked = 0
+    C.RemoveQuestWatch(62)
+    sim.Run(0.5)
+    assert "notDone" not in hosted(L, icons, canvas) and "turnIn" not in hosted(L, icons, canvas)
+    ns.UI.Feel.Set("questlog.trackedOnly", False)
+    sim.Run(0.5)
+    assert "notDone" in hosted(L, icons, canvas) and "turnIn" in hosted(L, icons, canvas)
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 

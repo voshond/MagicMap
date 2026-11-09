@@ -4,7 +4,8 @@
 -- smallest (its objective area lives there: areaMap, but for one ready to turn in). An item
 -- objective's item is QuestieDB's of that kind and place (QuestInfo.lua:94-110). Read again 0.3 s
 -- after a burst of the 5 events (Layers.lua:1231-1242, 2219-2228) or of QUEST_ACCEPTED and
--- QUEST_REMOVED (Forever's: a quest's id, as Questie's EventHandler.lua:157-193), at once when the
+-- QUEST_REMOVED (Forever's: a quest's id, as Questie's EventHandler.lua:157-193) or of QUEST_WATCH_LIST_CHANGED (each
+-- quest's watched: in Blizzard's tracker), at once when the
 -- super-tracked quest (a follow Command, Blizzard's tracker: the same frame's obs) or the instances change, and
 -- only while the map is shown (once it shows, for what came while it wasn't). Each quest is
 -- compared with its last as it's read and kept if the same, so a read that finds nothing new makes
@@ -38,7 +39,8 @@ local function Soon()
 	pending = true
 	Runtime.After(DELAY, "game.quests refresh", Due)
 end
-for _, event in ipairs({ "QUEST_LOG_UPDATE", "SUPER_TRACKING_CHANGED", "PLAYER_LEVEL_UP", "GET_ITEM_INFO_RECEIVED" }) do
+for _, event in ipairs({ "QUEST_LOG_UPDATE", "SUPER_TRACKING_CHANGED", "PLAYER_LEVEL_UP", "GET_ITEM_INFO_RECEIVED",
+	"QUEST_WATCH_LIST_CHANGED" }) do
 	Runtime.On(event, "game.quests", Soon)
 end
 local function Moved()
@@ -124,13 +126,15 @@ local function Quest(id, b, was)
 	level, group, tag = level > 0 and level or nil, group > 0 and group or nil, tag and tag.tagName ~= "" and tag.tagName or nil
 	local areaMap, inst, col, row = not complete and b.map or nil, Atlas.MapToTile(b.map, b.x, b.y)
 	local objectives, p = Objectives(id, was and was.objectives), was and was.pin
+	local watched = C_QuestLog.GetQuestWatchType(id) ~= nil
 	if was and objectives == was.objectives and title == was.title and level == was.level and trivial == was.trivial
-		and complete == was.complete and (id == followed) == was.followed and areaMap == was.areaMap and tag == was.tag
+		and complete == was.complete and (id == followed) == was.followed and watched == was.watched
+		and areaMap == was.areaMap and tag == was.tag
 		and group == was.group and inst == p.inst and col == p.col and row == p.row then
 		return was
 	end
 	return { id = id, title = title, level = level, trivial = trivial, complete = complete, followed = id == followed,
-		objectives = objectives, pin = { inst = inst, col = col, row = row }, areaMap = areaMap, tag = tag, group = group }
+		watched = watched, objectives = objectives, pin = { inst = inst, col = col, row = row }, areaMap = areaMap, tag = tag, group = group }
 end
 
 -- q (as read) at pin b: q if it stands there already.

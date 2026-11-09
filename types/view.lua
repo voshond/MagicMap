@@ -47,6 +47,8 @@
 ---@field here? { x: number, y: number, zoom: number, w: number }|false  you on the view (its pixels from TOPLEFT), its zoom
 ---                              (pixels per tile) and width: where the overlay spike lays Blizzard's Minimap; false: not on it
 ---@field pathing? boolean      a path's line is drawn (ui/Path.lua: Path.drawing): the overlay steps aside, our zoom the map's
+---@field trackedOnly? boolean  only tracked quests on the map (ui/Quests.lua's setting): Game borrows no other addon's
+---                              icons for a quest in your log that isn't in Blizzard's tracker (Questie's untracked rule)
 ---@field camera? MM.ViewCamera  where the map looks now, for telemetry's motion ring (docs/telemetry.md); Game copies it
 ---                              in its apply step, never acts on it. Its shape is UI's (OPEN).
 

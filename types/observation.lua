@@ -95,6 +95,7 @@
 ---@field trivial? boolean     the client calls it grey
 ---@field complete boolean     ready to turn in
 ---@field followed boolean     the super-tracked quest (one at most)
+---@field watched? boolean     in Blizzard's tracker (C_QuestLog.GetQuestWatchType)
 ---@field objectives MM.ObsObjective[]
 ---@field pin? MM.Pos          where the game puts its map pin (the smallest map that has it); nil: none
 ---@field areaMap? MM.UiMapID  the uiMap whose objective area holds it (for Inside and for drawing)

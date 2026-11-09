@@ -18,7 +18,7 @@ local quests, probes, want, early = {}, {}, {}, {}
 local function Quest(id, x, y, shape)
 	sim.blobShapes[id] = shape
 	local inst, col, row = A.MapToTile(MAP, x, y)
-	quests[#quests + 1] = { id = id, title = "Quest " .. id, complete = false, followed = false, objectives = {},
+	quests[#quests + 1] = { id = id, title = "Quest " .. id, complete = false, followed = false, watched = true, objectives = {},
 		areaMap = MAP, pin = { inst = inst, col = col, row = row } }
 end
 local function Probe(id, x, y, answer)

@@ -2121,12 +2121,24 @@ C_QuestLog = {
 	-- Its tag ("Elite", "Group", "Dungeon"), else nil; how many it suggests, else 0.
 	GetQuestTagInfo = function(questID) local q = Sim.quests[questID]; return q and q.tag and { tagID = 1, tagName = q.tag } end,
 	GetSuggestedGroupSize = function(questID) local q = Sim.quests[questID]; return q and q.group or 0 end,
-	AddQuestWatch = function(questID) Sim.watched = questID; Sim.watches[questID] = true; return true end,
-	RemoveQuestWatch = function(questID) Sim.watches[questID] = nil; return true end,
-	GetQuestWatchType = function(questID) return Sim.watches[questID] and 1 or nil end,
+	AddQuestWatch = function(questID)
+		Sim.watched = questID
+		Sim.watches[questID] = true
+		Sim.FireEvent("QUEST_WATCH_LIST_CHANGED", questID, true)
+		return true
+	end,
+	RemoveQuestWatch = function(questID)
+		Sim.watches[questID] = false
+		Sim.FireEvent("QUEST_WATCH_LIST_CHANGED", questID, false)
+		return true
+	end,
+	-- A quest in the log is in the tracker unless taken out (the client watches what you accept: autoQuestWatch).
+	GetQuestWatchType = function(questID) return Sim.quests[questID] and Sim.watches[questID] ~= false and 1 or nil end,
 	GetNumQuestWatches = function()
 		local n = 0
-		for _ in pairs(Sim.watches) do n = n + 1 end
+		for id in pairs(Sim.quests) do
+			if Sim.watches[id] ~= false then n = n + 1 end
+		end
 		return n
 	end,
 	IsFailed = function(questID) local q = Sim.quests[questID]; return q ~= nil and q.failed == true end,
@@ -2135,7 +2147,7 @@ C_QuestLog = {
 }
 -- The quest log's rows (C_QuestLog.GetInfo by index): a header a quest's `header` (else its zone, Elwynn
 -- Forest), in the order of their first quest by id, each followed by its quests by id.
-Sim.watches = {} -- quest ID -> true: in Blizzard's tracker
+Sim.watches = {} -- quest ID -> false: taken out of Blizzard's tracker (a logged quest is in it, else)
 local logRows, logFrame -- built once a frame (the client indexes its log; a scenario changes Sim.quests between frames)
 local function LogRows()
 	if logRows and logFrame == Sim.frame then return logRows end

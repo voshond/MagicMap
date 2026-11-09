@@ -207,7 +207,7 @@ end
 local function Rev()
 	local F = UI.Feel
 	if not feelRev or F and F.rev ~= feelRev then Restyle() end
-	return select(2, Model.Known("quests")) * 2 + (On("quests") and 1 or 0) + styleRev * 1e9
+	return select(2, Model.Known("quests")) * 2 + (On("quests") and 1 or 0) + styleRev * 1e9 + select(2, UI.TrackedOnly()) * 1e12
 end
 
 local layer = Engine.Layer("questAreas", LEVEL, function(c, inst, zoom, c0, r0, c1, r1)
@@ -221,7 +221,7 @@ local layer = Engine.Layer("questAreas", LEVEL, function(c, inst, zoom, c0, r0, 
 	local any, list = false, Model.Known("quests")
 	for _, e in ipairs(list) do
 		local r = e.areaMap and Atlas.MapRect(e.areaMap)
-		if r and r.inst == inst then
+		if r and r.inst == inst and UI.QuestOnMap(e) then -- (an untracked one's not drawn: ui/Quests.lua)
 			any = true
 			if r.col1 >= c0 and r.col0 <= c1 and r.row1 >= r0 and r.row0 <= r1 then Group(e, r) end
 		end

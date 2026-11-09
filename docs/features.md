@@ -51,7 +51,8 @@ the log holds. The box puts a quest in Blizzard's tracker or takes it out; a cli
 its pin (else its zone whole, on its own continent); hovering lights its area and shows its tooltip; right-click to
 Track, Follow, Share, Abandon or open it in the quest log. The map narrows to leave room for it; a big window too
 narrow for both has none. The chevron at the map's top right puts it away (>) and brings it back (<), as Settings >
-Quest areas > Quest log does.
+Tracking > Quest log does. With **Tracked quests only** (on, same place), a quest you untrack (its box) leaves the
+map: its icon, its area and Questie's icons for it; the quest you follow always shows.
 
 ![The big map over Durotar: subzone names, quest areas and pins, and the line to a waypoint](images/big-map-durotar-route.jpg)
 
@@ -189,7 +190,7 @@ only then; a row with more under it (Pins' families and types) has a plus that o
 | Pins | Show pins (on), Pin size (120%), Pin opacity (100%). By type: each family (Quests, Rares & treasures, Party, Places, Addons, Other) shown or not, and opened (+) its Size (Pin size's; Party's 100%, its own) and Opacity (Pin opacity's); each pin type under its family, with its icon drawn as on the map: shown or not, and opened its Size, Opacity, Icon (Blizzard's other art for it, today's by default) and Group (whether it may stand in a group's pill). Each follows the level above until set; its undo hands it back |
 | Resources | Tracking: Keep tracking (your gathering tracker: Find Herbs, else Find Minerals, else Find Treasure; or one you know, or Off) |
 | Quest pill | Shows (target or zone count / target only / off), Says (Name, Objective progress, Distance; chosen and ordered from those and Time to arrive), Progress bar (on), Bar opacity (20%), Bar colour (Gold), Fade quest pill (on: the zone count only while you point at the map). Look: Backing (60%), Size (100%) |
-| Tracking | Arrow: Size (105%), Opacity (100%), Distance (96 px). Path to: Frame the way (on). Tracked icon: Glow (on), Glow size (200%), Glow opacity (100%) |
+| Tracking | Arrow: Size (105%), Opacity (100%), Distance (96 px). Path to: Frame the way (on). Tracked icon: Glow (on), Glow size (200%), Glow opacity (100%). Quest log: Tracked quests only (on: an untracked quest's icons, area and Questie's icons off the map), Quest log on the big map (on; the chevron on the big map too) |
 | Pathing | Line: Style (dashed), Weight (1.4 px), Colour (Gold), Opacity (65%). Effects: Glow (off), Breathing (off), Breath pace (1.8 s). Outline: Outline (off), Outline colour (Dark) |
 | Quest areas | Followed quest, Other quests: Fill, Edge, Edge width. Under the cursor: Fill lift, Edge (as the game draws them, a quiet fill by default) |
 | Grouping | Group icons (on). How icons group: Distance (24 px), Reach (3x), Smallest group (2 icons). Pills: Icons in a pill (2), Pill backing (35%), Open group backing (72%) |

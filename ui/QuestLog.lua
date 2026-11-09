@@ -11,8 +11,8 @@
 -- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin.
 -- A click follows it (the follow Command: Blizzard's super-tracked quest) and flies the map there: to its pin, else
 -- its zone whole. A right-click: Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
--- The wheel scrolls it. The chevron at the map's top right puts it away and brings it back, as Settings > Quest areas
--- > Quest log > Quest log on the big map does.
+-- The wheel scrolls it. The chevron at the map's top right puts it away and brings it back, as Settings > Tracking >
+-- Quest log > Quest log on the big map does.
 
 local _, ns = ...
 local UI, Model, Atlas, Runtime = ns.UI, ns.Model, ns.Atlas, ns.Runtime
@@ -386,7 +386,7 @@ frame:HookScript("OnHide", Runtime.Wrap("map: quest log hidden", function()
 	Chrome.SetSide(0)
 end))
 
-UI.Feel.Add("areas", "Quest log", {
+UI.Feel.Add("tracking", "Quest log", {
 	{ key = "questlog.sidebar", kind = "toggle", label = "Quest log on the big map", default = true,
 		apply = function(v) QuestLog.on = v end,
 		tip = "Your quests down the big map's right side, as Blizzard's world map lists them: click one to follow it and fly there, right-click for more." },

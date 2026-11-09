@@ -113,14 +113,14 @@ def test_questlog_panel():
     points = [obj.GetPoint(obj, i)[0] for i in range(1, obj.GetNumPoints(obj) + 1)]
     assert sorted(points) == ["TOPLEFT", "TOPRIGHT"] and obj.GetPoint(obj, 1)[4] <= -18
 
-    # The box: in Blizzard's tracker, and out again.
-    assert not candles.check.mark.IsShown(candles.check.mark)
+    # The box: out of Blizzard's tracker (a quest taken is in it), and in again.
+    assert candles.check.mark.IsShown(candles.check.mark)
     sim.Click(candles.check)
     sim.Run(0.1)
-    assert sim.watches[60] and row(ns, "[7] Kobold Candles").check.mark.IsShown(row(ns, "[7] Kobold Candles").check.mark)
+    assert sim.watches[60] is False and not row(ns, "[7] Kobold Candles").check.mark.IsShown(row(ns, "[7] Kobold Candles").check.mark)
     sim.Click(row(ns, "[7] Kobold Candles").check)
     sim.Run(0.1)
-    assert not sim.watches[60]
+    assert sim.watches[60]
 
     # A header folds its quests away (kept by name), and back.
     sim.Click(row(ns, "Elwynn Forest"))
@@ -202,7 +202,7 @@ def test_questlog_clicks():
     # The right-click menu.
     sim.FireScript(row(ns, "[11] Protect the Frontier"), "OnClick", "RightButton", False)
     items = [(e.kind, e.text) for e in sim.menu["items"].values()]
-    assert items == [("title", "Protect the Frontier"), ("button", "Track"), ("button", "Follow"), ("button", "Share"),
+    assert items == [("title", "Protect the Frontier"), ("button", "Untrack"), ("button", "Follow"), ("button", "Share"),
                      ("button", "Abandon"), ("divider", None), ("button", "Open in quest log")]
 
     def pick(text):
@@ -210,6 +210,9 @@ def test_questlog_clicks():
         sim.Pick(next(e for e in sim.menu["items"].values() if e.text == text))
         sim.Run(0.1)
 
+    pick("Untrack")
+    assert sim.watches[52] is False
+    sim.Run(1.5)
     pick("Track")
     assert sim.watches[52]
     pick("Follow")
@@ -218,7 +221,54 @@ def test_questlog_clicks():
     assert sim.pushed == L.globals().C_QuestLog.GetLogIndexForQuestID(52)
     pick("Abandon")
     assert sim.abandonAsked == 52
-    sim.Run(1.5)
-    pick("Untrack")
-    assert not sim.watches[52]
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_questlog_untracked_off_the_map():
+    """Only tracked quests on the map (on by default): unticking a quest's box in the quest log takes its pin and its
+    area off the map; followed, it's back (and tracked again, as Blizzard's super-track does); the setting off, every
+    quest shows."""
+    L, sim, ns, G = client([CANDLES, FRONTIER])
+    UI = ns.UI
+    L.execute("local Sim = ...; Sim.watches[60] = true; Sim.watches[52] = true", sim)
+    sim.FireEvent("QUEST_WATCH_LIST_CHANGED")
+    sim.Run(1)
+    big(sim)
+    UI.Motion.SetFollow(False)
+    UI.Motion.SetZoom(200)
+    sim.Run(1)
+
+    def pins():
+        return sorted(L.eval("""function(layer)
+            local out, p = {}, layer.front and layer.front.pools.pin
+            for i = 1, p and p.n or 0 do out[#out + 1] = p.keys[i] end
+            return out
+        end""")(UI.Quests).values())
+
+    def areas():
+        return sorted(k for k in L.eval("""function(ns)
+            local out = {}
+            for _, e in ipairs(ns.Model.Known("quests")) do
+                if ns.UI.QuestOnMap(e) and e.areaMap then out[#out + 1] = e.quest end
+            end
+            return out
+        end""")(ns).values())
+
+    assert pins() == ["quest:52", "quest:60"]
+    sim.Click(row(ns, "[7] Kobold Candles").check)
+    sim.Run(1)
+    assert not sim.watches[60] and pins() == ["quest:52"] and 60 not in areas()
+    sim.Click(row(ns, "[7] Kobold Candles"))  # followed: back, untracked or not
+    sim.Run(1)
+    assert sim.superTracked == 60 and "quest:60" in pins()
+    assert sim.watches[60]  # (following tracks it too, as Blizzard's super-track does)
+    L.execute("local Sim = ...; Sim.superTracked = 0", sim)
+    sim.FireEvent("SUPER_TRACKING_CHANGED")
+    sim.Click(row(ns, "[7] Kobold Candles").check)
+    sim.Run(1)
+    assert pins() == ["quest:52"]
+    UI.Feel.Set("questlog.trackedOnly", False)
+    sim.Run(0.5)
+    assert pins() == ["quest:52", "quest:60"]
+    assert UI.View().trackedOnly is False
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))

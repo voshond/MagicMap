@@ -66,13 +66,25 @@ local function Look(e)
 	return look
 end
 
+-- Only tracked quests on the map (Settings > Tracking > Quest log > Tracked quests only, on): a quest you've taken out of Blizzard's
+-- tracker (the quest log's box: ui/QuestLog.lua) leaves the map, its pin and its area (ui/Areas.lua) and Questie's
+-- icons for it (View.trackedOnly: game/AddonPins.lua), as Questie's own "hide untracked" does; the one you follow stays.
+local trackedOnly, trackedRev = true, 0
+Feel.Add("tracking", "Quest log", {
+	{ key = "questlog.trackedOnly", kind = "toggle", label = "Tracked quests only", default = true,
+		apply = function(v) trackedOnly, trackedRev = v, trackedRev + 1 end,
+		tip = "A quest you untrack (the box in the big map's quest log, or Blizzard's tracker) leaves the map: its icon, its area and Questie's icons for it. The quest you follow always shows." },
+})
+function UI.QuestOnMap(e) return not trackedOnly or e.watched or e.followed end
+function UI.TrackedOnly() return trackedOnly, trackedRev end
+
 UI.Quests = Pins.Layer("quests", 15, function(put)
 	for _, e in ipairs(Model.Known("quests")) do
-		if not e.complete then put(e, Look(e)) end -- (ready to turn in: Blizzard's "?" blip, the overlay's)
+		if not e.complete and UI.QuestOnMap(e) then put(e, Look(e)) end -- (ready to turn in: Blizzard's "?" blip, the overlay's)
 	end
 end, function()
 	local _, _, labels = UI.LabelsSub()
-	return select(2, Model.Known("quests")) * 2 + (UI.BigMap.big and 1 or 0) + labels * 1e7
+	return select(2, Model.Known("quests")) * 2 + (UI.BigMap.big and 1 or 0) + labels * 1e7 + trackedRev * 1e12
 end, {
 	tooltip = UI.QuestTooltip.Fill, -- (a click grows it into the popup: ui/Pins.lua's Tap)
 	hover = Areas.Hover,

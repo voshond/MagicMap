@@ -12,7 +12,8 @@
 -- parent, continent or world maps per its flag; ours is a zone map close up and a continent's zoomed
 -- out, so past CONTINENT_ZOOM only pins flagged for continents come. Pins drawn for its own zone map
 -- alone (Questie's -1, its route lines) and frames bigger than pins never do (Questie's turn-ins stand:
--- our quests layer draws none since Blizzard's blips do; its turnIns rule, AddonPins.lua:212-220, holds none). A Questie log is thousands of
+-- our quests layer draws none since Blizzard's blips do; its turnIns rule, AddonPins.lua:212-220, holds none), nor, with
+-- only tracked quests on the map (View.trackedOnly), an untracked quest's icons (Questie's hideUntrackedQuestsMapIcons rule). A Questie log is thousands of
 -- pins, so borrowing and giving back is a Runtime.Job: NEWS_MS a frame for one with something to show
 -- soon (opened, a new socket or map, an addon's layer toggled, the library changed, given back, the
 -- zoom across CONTINENT_ZOOM), JOB_MS for the regular one every SYNC_EVERY (pins the library took
@@ -222,6 +223,28 @@ local function Repeats(icon)
 	return type(d) == "table" and d.Type == "complete" and turnIns[d.Id] == true
 end
 
+-- Only tracked quests on the map (View.trackedOnly, the pass's): a Questie icon for a quest in your log that isn't in
+-- Blizzard's tracker, but a quest to pick up (Questie's own rule: QuestieFrame.lua's hideUntrackedQuestsMapIcons).
+local trackedOnly, untracked = false, {} -- the pass's; quest -> true/false, asked once a pass
+local function Untracked(icon)
+	if not trackedOnly then return false end
+	local d = rawget(icon, "data")
+	local id = type(d) == "table" and d.Type ~= "available" and type(d.Id) == "number" and d.Id
+	if not id then return false end
+	local u = untracked[id]
+	if u == nil then
+		local index = C_QuestLog.GetLogIndexForQuestID(id)
+		u = index ~= nil and index > 0 and C_QuestLog.GetQuestWatchType(id) == nil
+			and C_SuperTrack.GetSuperTrackedQuestID() ~= id
+		untracked[id] = u
+	end
+	return u
+end
+-- The tracker or the followed quest changed: borrow again (an untracked quest's icons go, a tracked one's come).
+for _, event in ipairs({ "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED" }) do
+	Runtime.On(event, "game.addon pins", function() dirty = true end)
+end
+
 -- Borrow what should be on the socket, give back what shouldn't (another socket's or map's too:
 -- not seen here). continent: zoomed out past CONTINENT_ZOOM.
 local function Sync(level, continent)
@@ -234,7 +257,7 @@ local function Sync(level, continent)
 					local data = pins[icon]
 					local flag = data and data.worldMapShowFlag
 					if data and data.instanceID == inst and flag >= 0 and (flag >= SHOW_CONTINENT or not continent)
-						and not Repeats(icon) then
+						and not Repeats(icon) and not Untracked(icon) then
 						local rec = hosted[icon]
 						if rec and icon:GetParent() ~= socket then Restore(icon, rec); rec = nil end -- the library took it back
 						if rec or (icon:GetWidth() <= MAX_SIZE and icon:GetHeight() <= MAX_SIZE) then
@@ -309,7 +332,7 @@ local function WorldPins(view)
 		zoom = s.zoom
 		Replace()
 	end
-	dirty = dirty or Toggled(view.layers)
+	dirty = dirty or Toggled(view.layers) or (view.trackedOnly == true) ~= trackedOnly
 	if not Running() and ((dirty and t - syncAt >= SYNC_SOON) or t - syncAt >= SYNC_EVERY) then
 		local ms = dirty and NEWS_MS or JOB_MS
 		dirty, syncAt = false, t
@@ -318,6 +341,8 @@ local function WorldPins(view)
 			if v and k:find("^addon:") then on[k] = true end
 		end
 		wipe(turnIns) -- (none now: our quests layer draws no turn-in, Blizzard's blip does: Questie's "?" stands)
+		trackedOnly = view.trackedOnly == true
+		wipe(untracked)
 		local level, continent = s.level or s.frame:GetFrameLevel() + 1, zoom < CONTINENT_ZOOM
 		if Any() then Pass("borrow", function() Sync(level, continent) end, ms) end
 	end

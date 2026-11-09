@@ -29,6 +29,7 @@ local P = {
 			},
 			title = "Kobold Camp Cleanup",
 			trivial = true,
+			watched = true,
 		},
 		[2] = {
 			areaMap = 1429,
@@ -53,6 +54,7 @@ local P = {
 			},
 			title = "Gold Dust Exchange",
 			trivial = false,
+			watched = true,
 		},
 		[3] = {
 			areaMap = 1429,
@@ -83,6 +85,7 @@ local P = {
 			},
 			title = "Protect the Frontier",
 			trivial = false,
+			watched = true,
 		},
 		[4] = {
 			areaMap = 1429,
@@ -107,6 +110,7 @@ local P = {
 			},
 			title = "Kobold Candles",
 			trivial = false,
+			watched = true,
 		},
 		[5] = {
 			areaMap = 1429,
@@ -130,6 +134,7 @@ local P = {
 			},
 			title = "The Fargodeep Mine",
 			trivial = false,
+			watched = true,
 		},
 		[6] = {
 			complete = true,
@@ -144,6 +149,7 @@ local P = {
 			},
 			title = "Young Lovers",
 			trivial = false,
+			watched = true,
 		},
 		[7] = {
 			areaMap = 1429,
@@ -168,6 +174,7 @@ local P = {
 			},
 			title = "Wanted:  \"Hogger\"",
 			trivial = false,
+			watched = true,
 		},
 	},
 	[2] = {
@@ -192,6 +199,7 @@ local P = {
 			},
 			title = "Kobold Camp Cleanup",
 			trivial = true,
+			watched = true,
 		},
 		[2] = {
 			areaMap = 1429,
@@ -216,6 +224,7 @@ local P = {
 			},
 			title = "Gold Dust Exchange",
 			trivial = false,
+			watched = true,
 		},
 		[3] = {
 			areaMap = 1429,
@@ -246,6 +255,7 @@ local P = {
 			},
 			title = "Protect the Frontier",
 			trivial = false,
+			watched = true,
 		},
 		[4] = {
 			areaMap = 1429,
@@ -270,6 +280,7 @@ local P = {
 			},
 			title = "Kobold Candles",
 			trivial = false,
+			watched = true,
 		},
 		[5] = {
 			areaMap = 1429,
@@ -293,6 +304,7 @@ local P = {
 			},
 			title = "The Fargodeep Mine",
 			trivial = false,
+			watched = true,
 		},
 		[6] = {
 			complete = true,
@@ -307,6 +319,7 @@ local P = {
 			},
 			title = "Young Lovers",
 			trivial = false,
+			watched = true,
 		},
 		[7] = {
 			areaMap = 1429,
@@ -331,6 +344,7 @@ local P = {
 			},
 			title = "Wanted:  \"Hogger\"",
 			trivial = false,
+			watched = true,
 		},
 	},
 	[3] = {
@@ -355,6 +369,7 @@ local P = {
 			},
 			title = "Kobold Camp Cleanup",
 			trivial = true,
+			watched = true,
 		},
 		[2] = {
 			areaMap = 1429,
@@ -379,6 +394,7 @@ local P = {
 			},
 			title = "Gold Dust Exchange",
 			trivial = false,
+			watched = true,
 		},
 		[3] = {
 			areaMap = 1429,
@@ -409,6 +425,7 @@ local P = {
 			},
 			title = "Protect the Frontier",
 			trivial = false,
+			watched = true,
 		},
 		[4] = {
 			areaMap = 1429,
@@ -433,6 +450,7 @@ local P = {
 			},
 			title = "Kobold Candles",
 			trivial = false,
+			watched = true,
 		},
 		[5] = {
 			areaMap = 1429,
@@ -456,6 +474,7 @@ local P = {
 			},
 			title = "The Fargodeep Mine",
 			trivial = false,
+			watched = true,
 		},
 		[6] = {
 			complete = true,
@@ -470,6 +489,7 @@ local P = {
 			},
 			title = "Young Lovers",
 			trivial = false,
+			watched = true,
 		},
 		[7] = {
 			areaMap = 1429,
@@ -494,6 +514,7 @@ local P = {
 			},
 			title = "Wanted:  \"Hogger\"",
 			trivial = false,
+			watched = true,
 		},
 	},
 	[4] = {
@@ -518,6 +539,7 @@ local P = {
 			},
 			title = "Kobold Camp Cleanup",
 			trivial = true,
+			watched = true,
 		},
 		[2] = {
 			areaMap = 1429,
@@ -542,6 +564,7 @@ local P = {
 			},
 			title = "Gold Dust Exchange",
 			trivial = false,
+			watched = true,
 		},
 		[3] = {
 			areaMap = 1429,
@@ -572,6 +595,7 @@ local P = {
 			},
 			title = "Protect the Frontier",
 			trivial = false,
+			watched = true,
 		},
 		[4] = {
 			areaMap = 1429,
@@ -596,6 +620,7 @@ local P = {
 			},
 			title = "Kobold Candles",
 			trivial = false,
+			watched = true,
 		},
 		[5] = {
 			complete = true,
@@ -618,6 +643,7 @@ local P = {
 			},
 			title = "The Fargodeep Mine",
 			trivial = false,
+			watched = true,
 		},
 		[6] = {
 			complete = true,
@@ -632,6 +658,7 @@ local P = {
 			},
 			title = "Young Lovers",
 			trivial = false,
+			watched = true,
 		},
 		[7] = {
 			areaMap = 1429,
@@ -656,6 +683,7 @@ local P = {
 			},
 			title = "Wanted:  \"Hogger\"",
 			trivial = false,
+			watched = true,
 		},
 	},
 	[5] = {
@@ -680,6 +708,7 @@ local P = {
 			},
 			title = "Kobold Camp Cleanup",
 			trivial = true,
+			watched = true,
 		},
 		[2] = {
 			areaMap = 1429,
@@ -704,6 +733,7 @@ local P = {
 			},
 			title = "Gold Dust Exchange",
 			trivial = false,
+			watched = true,
 		},
 		[3] = {
 			areaMap = 1429,
@@ -734,6 +764,7 @@ local P = {
 			},
 			title = "Protect the Frontier",
 			trivial = false,
+			watched = true,
 		},
 		[4] = {
 			areaMap = 1429,
@@ -758,6 +789,7 @@ local P = {
 			},
 			title = "Kobold Candles",
 			trivial = false,
+			watched = true,
 		},
 		[5] = {
 			areaMap = 1429,
@@ -781,6 +813,7 @@ local P = {
 			},
 			title = "The Jasperlode Mine",
 			trivial = false,
+			watched = true,
 		},
 		[6] = {
 			complete = true,
@@ -795,6 +828,7 @@ local P = {
 			},
 			title = "Young Lovers",
 			trivial = false,
+			watched = true,
 		},
 		[7] = {
 			areaMap = 1429,
@@ -819,6 +853,7 @@ local P = {
 			},
 			title = "Wanted:  \"Hogger\"",
 			trivial = false,
+			watched = true,
 		},
 	},
 	[6] = {},
