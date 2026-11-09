@@ -92,11 +92,13 @@ local function isA(obj, name)
 	return false
 end
 
+local made = 0 -- widgets made: each one's creation order (draw order among equals: tools/proof's renders)
 local function new(typ, name, parent)
 	local obj = setmetatable({}, classes[typ].mt)
+	made = made + 1
 	S[obj] = {
 		type = typ, name = name, parent = parent, points = {}, shown = true, alpha = 1, scale = 1,
-		children = {}, regions = {}, scripts = {}, events = {}, level = 0, strata = "MEDIUM",
+		children = {}, regions = {}, scripts = {}, events = {}, level = 0, strata = "MEDIUM", order = made,
 	}
 	if name then
 		named[name] = obj
@@ -490,9 +492,16 @@ function FontString:GetFont()
 end
 function FontString:SetFontObject(obj) S[self].fontObject = obj end
 function FontString:GetFontObject() return S[self].fontObject end
-function FontString:SetTextColor(r, g, b, a) assert(type(r) == "number", "SetTextColor: numbers expected") end
-function FontString:SetJustifyH(j) assert(j == "LEFT" or j == "CENTER" or j == "RIGHT", "SetJustifyH: bad value") end
-function FontString:SetJustifyV(j) end
+function FontString:SetTextColor(r, g, b, a)
+	assert(type(r) == "number", "SetTextColor: numbers expected")
+	S[self].textRGBA = { r, g, b, a or 1 }
+end
+function FontString:GetTextColor()
+	local c = S[self].textRGBA or { 1, 1, 1, 1 }
+	return c[1], c[2], c[3], c[4]
+end
+function FontString:SetJustifyH(j) assert(j == "LEFT" or j == "CENTER" or j == "RIGHT", "SetJustifyH: bad value"); S[self].justifyH = j end
+function FontString:SetJustifyV(j) S[self].justifyV = j end
 function FontString:SetShadowOffset(x, y) end
 function FontString:SetShadowColor(r, g, b, a) end
 function FontString:SetWordWrap(on) end
@@ -599,7 +608,7 @@ function Frame:IsMovable() return S[self].movable end
 function Frame:SetResizable(on) S[self].resizable = on end
 function Frame:SetClampedToScreen(on) S[self].clamped = not not on end
 function Frame:IsClampedToScreen() return S[self].clamped == true end
-function Frame:SetClipsChildren(on) end
+function Frame:SetClipsChildren(on) S[self].clips = not not on end
 function Frame:SetHitRectInsets(l, r, t, b)
 	assert(type(l) == "number" and type(r) == "number" and type(t) == "number" and type(b) == "number", "SetHitRectInsets: numbers expected")
 	S[self].hitInsets = { l, r, t, b }
@@ -1679,8 +1688,13 @@ TEMPLATE_SETUP.WowStyle1DropdownTemplate = function(f)
 	f.Background:SetAtlas("common-dropdown-textholder")
 	f.Arrow = f:CreateTexture(nil, "ARTWORK")
 	f.Arrow:SetAtlas("common-dropdown-a-button")
+	f.Background:SetAllPoints()
+	f.Arrow:SetPoint("RIGHT", -2, 0)
+	f.Arrow:SetSize(20, 20)
 	f.Text = f:CreateFontString(nil, "ARTWORK")
 	f.Text:SetFontObject(GameFontHighlight)
+	f.Text:SetPoint("LEFT", 8, 0)
+	f.Text:SetPoint("RIGHT", f.Arrow, "LEFT", -2, 0)
 end
 
 -- A menu entry clicked: its onSelect, then the menu closes (unless it answers Refresh or Open), and a dropdown that
@@ -1996,7 +2010,9 @@ for _, base in ipairs({ "ui-hud-minimap-zoom-in", "ui-hud-minimap-zoom-out" }) d
 	ATLASES[base], ATLASES[base .. "-mouseover"], ATLASES[base .. "-down"] = true, true, true
 end
 for _, name in ipairs({ "redbutton-expand", "redbutton-expand-pressed", "redbutton-highlight", "redbutton-condense",
-	"redbutton-condense-pressed", "uitools-icon-close", "UI-RefreshButton", "Quest-In-Progress-Icon-yellow" }) do
+	"redbutton-condense-pressed", "uitools-icon-close", "UI-RefreshButton", "Quest-In-Progress-Icon-yellow",
+	"QuestLog-main-background", "QuestLog-frame-devider", "questlog-icon-ticksquare", "questlog-icon-checkmark-yellow",
+	"questlog-quest-glow-yellow", "common-button-list-plus", "common-button-list-minus" }) do
 	ATLASES[name] = true
 end
 -- The metal frame's pieces, sized as Forever reports them: the edges far
@@ -2099,8 +2115,70 @@ C_QuestLog = {
 	-- Its tag ("Elite", "Group", "Dungeon"), else nil; how many it suggests, else 0.
 	GetQuestTagInfo = function(questID) local q = Sim.quests[questID]; return q and q.tag and { tagID = 1, tagName = q.tag } end,
 	GetSuggestedGroupSize = function(questID) local q = Sim.quests[questID]; return q and q.group or 0 end,
-	AddQuestWatch = function(questID) Sim.watched = questID; return true end,
+	AddQuestWatch = function(questID) Sim.watched = questID; Sim.watches[questID] = true; return true end,
+	RemoveQuestWatch = function(questID) Sim.watches[questID] = nil; return true end,
+	GetQuestWatchType = function(questID) return Sim.watches[questID] and 1 or nil end,
+	GetNumQuestWatches = function()
+		local n = 0
+		for _ in pairs(Sim.watches) do n = n + 1 end
+		return n
+	end,
+	IsFailed = function(questID) local q = Sim.quests[questID]; return q ~= nil and q.failed == true end,
+	IsPushableQuest = function(questID) local q = Sim.quests[questID]; return q ~= nil and q.pushable == true end,
+	CanAbandonQuest = function(questID) return Sim.quests[questID] ~= nil end,
 }
+-- The quest log's rows (C_QuestLog.GetInfo by index): a header a quest's `header` (else its zone, Elwynn
+-- Forest), in the order of their first quest by id, each followed by its quests by id.
+Sim.watches = {} -- quest ID -> true: in Blizzard's tracker
+local logRows, logFrame -- built once a frame (the client indexes its log; a scenario changes Sim.quests between frames)
+local function LogRows()
+	if logRows and logFrame == Sim.frame then return logRows end
+	local ids, order, under = {}, {}, {}
+	for id in pairs(Sim.quests) do ids[#ids + 1] = id end
+	table.sort(ids)
+	for _, id in ipairs(ids) do
+		local h = Sim.quests[id].header or "Elwynn Forest"
+		if not under[h] then
+			under[h] = {}
+			order[#order + 1] = h
+		end
+		table.insert(under[h], id)
+	end
+	local rows = {}
+	for _, h in ipairs(order) do
+		rows[#rows + 1] = { header = h }
+		for _, id in ipairs(under[h]) do rows[#rows + 1] = { id = id } end
+	end
+	logRows, logFrame = rows, Sim.frame
+	return rows
+end
+function C_QuestLog.GetNumQuestLogEntries()
+	local rows, quests = LogRows(), 0
+	for _, r in ipairs(rows) do
+		if r.id then quests = quests + 1 end
+	end
+	return #rows, quests
+end
+function C_QuestLog.GetInfo(index)
+	local r = LogRows()[index]
+	if not r then return nil end
+	local q = r.id and Sim.quests[r.id]
+	return { title = r.header or q.title, questLogIndex = index, questID = r.id or 0, level = q and q.level or 0,
+		difficultyLevel = q and q.level or 0, suggestedGroup = 0, isHeader = r.header ~= nil, isCollapsed = false,
+		isTask = false, isBounty = false, isHidden = q ~= nil and q.hidden == true, isOnMap = q ~= nil }
+end
+function C_QuestLog.GetLogIndexForQuestID(questID)
+	for i, r in ipairs(LogRows()) do
+		if r.id == questID then return i end
+	end
+end
+function GetQuestUiMapID(questID) local q = Sim.quests[questID]; return q and q.map or 0 end
+function QuestLogPushQuest(index) Sim.pushed = index end
+function QuestMapQuestOptions_AbandonQuest(questID) Sim.abandonAsked = questID end
+Constants = { QuestWatchConsts = { MAX_QUEST_WATCHES = 25 }, QuestLogConsts = { MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT = 40 } }
+QUEST_WATCH_QUEST_READY = "Ready for turn-in"
+function GetQuestLogCompletionText(index) return nil end
+OBJECTIVES_WATCH_TOO_MANY = "You are tracking too many quests."
 -- A quest taken or given up (handed in too) comes with QUEST_ACCEPTED or QUEST_REMOVED (questID: Forever's,
 -- Questie's EventHandler.lua:157-193) before its QUEST_LOG_UPDATE: a scenario changes Sim.quests and fires
 -- QUEST_LOG_UPDATE, the sim fires those for the quests come and gone since the last.

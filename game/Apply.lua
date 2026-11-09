@@ -21,5 +21,9 @@ function Game.Apply(name, fn)
 end
 
 -- The instance the map shows while it's shown, false while it's hidden (nil: no apply yet), as of the
--- last apply: what Game's parts read of View (they register no apply step: tools/luacheck.py).
-Game.Apply("view", function(view) Game.shownInst = view.window.shown and view.inst end)
+-- last apply: what Game's parts read of View (they register no apply step: tools/luacheck.py). bigShown: the big
+-- map is up (the quest log's sidebar can show: game/parts/QuestLog.lua reads the log only then).
+Game.Apply("view", function(view)
+	Game.shownInst = view.window.shown and view.inst
+	Game.bigShown = view.window.shown and view.window.big
+end)

@@ -144,7 +144,7 @@ local function Grow()
 	local zoom = Camera.cam.zoom / EXPAND_ZOOM_OUT
 	local r = ZoneRect()
 	if r then
-		local vw = w - (frame:GetWidth() - Window.view:GetWidth()) -- the map inside the border
+		local vw = w - (frame:GetWidth() - Window.view:GetWidth() - UI.Chrome.side) - UI.QuestLog.Room(w) -- the map inside the border, beside the quest log
 		local vh = h - (frame:GetHeight() - Window.view:GetHeight())
 		zoom = math.max(zoom, math.min(vw / (r.col1 - r.col0), vh / (r.row1 - r.row0)) * FIT) -- /: never 0 (map rects have area: gen_world.py)
 	end
@@ -176,6 +176,9 @@ end
 function BigMap.Close()
 	if UI.Replace.Get("minimap") then Shrink() else frame:Hide() end
 end
+
+-- Growing or shrinking: the window's rect on its way (the quest log waits for it: ui/QuestLog.lua).
+function BigMap.Tweening() return tween ~= nil end
 
 -- While big or shrinking back: the small rect it returns to (its zoom is the one saved).
 function BigMap.Small() return small end

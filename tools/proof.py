@@ -1,0 +1,117 @@
+"""Proof pictures of the map's chrome on the simulated client: each scenario drives the sim (tools/tests/wowsim.lua)
+to a state and renders its frames to SVG and PNG with wowproof (unit-frames' renderer: loaded from its checkout, never
+copied here, as it's PolyForm Noncommercial and MagicMap GPLv3), then a contact sheet of them all.
+
+    .venv/bin/python tools/proof.py                  # every scenario: .proof/<name>.svg, .png, .proof/index.html
+    .venv/bin/python tools/proof.py questlog         # scenarios whose name holds the text
+    WOWPROOF_DIR=~/src/unit-frames .venv/bin/python tools/proof.py   # wowproof's checkout (default ~/Documents/GitHub/unit-frames)
+
+The ground (the minimap tiles: the client's own art) and Blizzard's atlases aren't in a render's reach: the tiles are
+left out, an atlas is a dashed box named after it. What the pictures prove is the layout: what shows where, its
+text and its colours. PNGs need rsvg-convert. Exits 1 if a scenario failed or wowproof isn't there (2).
+"""
+import os
+import sys
+
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(TOOLS, "tests"))
+sys.path.insert(0, TOOLS)
+
+from test_quests import CANDLES, FRONTIER, GOLD, LOVERS, client  # noqa: E402
+
+ROOT = os.path.dirname(TOOLS)
+OUT = os.path.join(ROOT, ".proof")
+WOWPROOF = os.path.expanduser(os.environ.get("WOWPROOF_DIR", "~/Documents/GitHub/unit-frames"))
+
+PROOF = """
+local Sim, ns, wowproofDir, adapterPath, outDir = ...
+package.path = wowproofDir .. "/?.lua;" .. wowproofDir .. "/?/init.lua;" .. package.path
+local Proof = require("wowproof")
+-- The ground left out: the tiles (FileDataIDs of the client's), the base picture and the sea under them.
+local ground = {}
+for _, layer in ipairs(ns.UI.Engine.layers) do
+	if layer.zoom == "scale" then
+		for _, c in ipairs({ layer.front, layer.back }) do if c then ground[c] = true end end
+	end
+end
+local function Skip(r) return ground[r] == true end
+return Proof.New({ adapter = dofile(adapterPath)(Sim, { skip = Skip }), outDir = outDir, title = "MagicMap proof",
+	assets = { fonts = { default = "DejaVu Sans" } } })
+"""
+
+QUESTS = [FRONTIER, CANDLES, GOLD, LOVERS]
+
+
+def setup():
+    """A client on the quest test's log, two zones of it, one followed and one tracked."""
+    L, sim, ns, G = client(QUESTS, followed=60)
+    L.execute("""local Sim = ...
+        Sim.quests[106].header = "Westfall"
+        Sim.quests[840] = { title = "Conscript of the Horde", level = 10, map = 1411, x = 0.5, y = 0.5, complete = false,
+            header = "Durotar", objectives = { { text = "Speak to Kargal", type = "event", finished = false } } }
+        Sim.watches[47] = true""", sim)
+    sim.FireEvent("QUEST_LOG_UPDATE")
+    sim.Run(1.5)
+    return L, sim, ns
+
+
+def grow(sim):
+    sim.Press("M")
+    sim.Run(1)
+
+
+def scenarios(L, sim, ns):
+    """(name, how to get there, what to render, options): in order, each from where the last left the sim."""
+    UI = ns.UI
+    f, panel = UI.Window.frame, UI.QuestLog.panel
+
+    def kalimdor():
+        drop = UI.MapPicker.drop
+        sim.FireScript(drop, "OnMouseDown", "LeftButton")
+        sim.Pick(next(e for e in sim.menu["items"].values() if e.text == "Kalimdor"))
+        sim.Run(1)
+
+    def fold():
+        UI.Feel.Set("questlog.sidebar", True)
+        sim.Run(0.2)
+        header = next(r for r in UI.QuestLog.rows.values() if r.IsShown(r) and r.text.GetText(r.text) == "Elwynn Forest")
+        sim.Click(header)
+
+    def off():
+        UI.Feel.Set("questlog.sidebar", False)
+        sim.Run(0.2)
+
+    return [
+        ("small map", lambda: None, f, {"pad": 30}),
+        ("big map with the quest log", lambda: grow(sim), f, {"pad": 30}),
+        ("quest log panel", lambda: None, panel, {"pad": 8}),
+        ("big map: Kalimdor from the Maps dropdown", kalimdor, f, {"pad": 30}),
+        ("quest log: Elwynn folded", fold, panel, {"pad": 8}),
+        ("big map, quest log off", off, f, {"pad": 30}),
+    ]
+
+
+def main(filters):
+    if not os.path.exists(os.path.join(WOWPROOF, "wowproof", "init.lua")):
+        print(f"wowproof not found under {WOWPROOF} (set WOWPROOF_DIR to unit-frames' checkout)")
+        return 2
+    L, sim, ns = setup()
+    proof = L.execute(PROOF, sim, ns, WOWPROOF, os.path.join(TOOLS, "proof", "wowsim.lua"), OUT)
+    failed = 0
+    for name, go, region, options in scenarios(L, sim, ns):
+        go()
+        if filters and not any(f in name for f in filters):
+            continue
+        try:
+            entry = proof.Snapshot(proof, region, name, L.table_from(options))
+            print(f"  ok   {name:<45} {entry.png or entry.svg}")
+        except Exception as e:  # noqa: BLE001 (a failed render is listed, the rest still run)
+            failed += 1
+            proof.Fail(proof, name, str(e))
+            print(f"  FAIL {name}\n    {e}")
+    print(f"{failed} failed: {proof.Sheet(proof)}")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

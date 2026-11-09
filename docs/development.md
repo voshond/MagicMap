@@ -146,6 +146,23 @@ after every frame, and `T.strictPins = True` adds one pin per real thing across 
 
 CI (`.github/workflows/check.yml`) runs `tools/check.sh` on every push and PR.
 
+## Proof pictures
+
+`tools/proof.py` drives the simulated client to a few states (the small map, the big map with its quest log, a map
+picked from the Maps dropdown, a folded header, the quest log off) and renders the window's frames to SVG and PNG,
+with a contact sheet, in `.proof/` (gitignored):
+
+```sh
+.venv/bin/python tools/proof.py            # every scenario; .proof/index.html
+.venv/bin/python tools/proof.py questlog   # those whose name holds the text
+```
+
+It renders with wowproof from unit-frames' checkout (`WOWPROOF_DIR`, default
+`~/Documents/GitHub/unit-frames`): loaded from there, never copied here (it's PolyForm Noncommercial).
+`tools/proof/wowsim.lua` is the adapter over the sim's widgets. The ground (the client's tiles) is left out and
+Blizzard's atlases are dashed boxes: the pictures prove layout, text and colour, as the tests can't (an anchor that
+stretches a row reads the same text). PNGs need `rsvg-convert`.
+
 ## How to add a setting
 
 A setting is declared once, in the file that uses it; the settings window (ui/Feel.lua) is built from what's

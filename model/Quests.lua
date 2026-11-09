@@ -39,6 +39,11 @@ function Model.QuestColor(lvl)
 	return Difficulty(lvl, level ~= nil and lvl <= level - TRIVIAL)
 end
 
+-- A logged quest's colour, as its pin has it (the quest log's sidebar: model/QuestLog.lua); your level, the last handed.
+function Model.LogQuestColor(lvl, trivial)
+	return Difficulty(lvl, trivial)
+end
+
 local function Same(a, b)
 	if a == b then return true end
 	local p, x = a.pin, b.pin

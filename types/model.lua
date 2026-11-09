@@ -141,6 +141,7 @@
 ---                                the building's rooms UI draws (ADR 0008)
 ---@field tracking MM.ObsTracking[]  obs.tracking, the last handed ({} until known): the gear's Tracking submenu
 ---@field buttons MM.ObsButton[]   obs.buttons, the last handed ({} until known): the gear's Minimap buttons submenu
+---@field questlog? MM.ObsQuestLog obs.questlog's rows, each quest with its difficulty colour (color), and rev (one more each change): the big map's quest log (ui/QuestLog.lua); nil until first read
 ---@field clock? MM.ObsClock       obs.clock, the last handed (nil until known): the title's time and day or night
 ---@field SAVED MM.SavedSpec       Model's saved part's spec (types/saved.lua MM.SavedModel)
 local Model = {}

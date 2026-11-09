@@ -377,6 +377,7 @@ def run_stream(name, look=False):
     it's set, T.Invariants each frame); look: LOOK each frame, on the priced clock past the graces."""
     L = lua51.LuaRuntime(encoding="latin-1", unpack_returned_tuples=True)
     sim, ns = harness(L).Boot((SMALL if name.startswith("small:") else TEST_UI) + "\n" + SEEN)
+    ns.UI.Feel.Set("questlog.sidebar", False)  # (the streams' framings are the whole big window's: test_questlog has it)
     sim.Slash("/mm toggle")
     sim.Run(3)
     A, out, R = L.execute(DRIVER, sim, ns, os.path.join(TESTS, "spike_camera.lua"))

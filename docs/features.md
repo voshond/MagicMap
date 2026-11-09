@@ -40,9 +40,17 @@ or Escape shrinks it. Move or resize the big map and it opens there next time, a
 map off in Settings). The title over the map says what you choose (Settings > Frame title), at rest and with
 the pointer on the map, in your order: the zone, subzone, coordinates (the pointer's on the big map), the
 tracked target and its distance, the local or server time, each time led by the minimap's own day or night picture in its gold ring (no AM or PM); by
-default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name to pick a
+default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name, or the Maps dropdown at the big map's top left, to pick a
 continent, another map or an instance; with several zones in view, hover one to light it and click
 to fly there. `/mm map` and `/mm zone` do the same by name.
+
+**The quest log on the big map.** Grown, the big map lists your quests down its right side, as Blizzard's world
+map does beside its own: each zone a header (click to fold it; folded ones stay folded), each quest's level and name
+in its difficulty's colour with what it still needs under it (done: ready for turn-in), and the count of how many
+the log holds. The box puts a quest in Blizzard's tracker or takes it out; a click follows it and flies the map to
+its pin (else its zone whole, on its own continent); hovering lights its area and shows its tooltip; right-click to
+Track, Follow, Share, Abandon or open it in the quest log. The map narrows to leave room for it; a big window too
+narrow for both has none. Settings > Quest areas > Quest log turns it off.
 
 ![The big map over Durotar: subzone names, quest areas and pins, and the line to a waypoint](images/big-map-durotar-route.jpg)
 

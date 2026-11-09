@@ -110,7 +110,7 @@ local SAFE_VIEW = {
 -- shows in the next Observation (the same frame for one carried out in Input).
 -- One that fails is reported (Runtime) and dropped, never retried.
 
----@alias MM.Command MM.CmdFollow|MM.CmdQuestLog|MM.CmdWaypoint|MM.CmdWay|MM.CmdTracking|MM.CmdTooltip|MM.CmdSlash|MM.CmdLoad|MM.CmdRun|MM.CmdButton
+---@alias MM.Command MM.CmdFollow|MM.CmdQuestLog|MM.CmdQuestWatch|MM.CmdQuestShare|MM.CmdQuestAbandon|MM.CmdWaypoint|MM.CmdWay|MM.CmdTracking|MM.CmdTooltip|MM.CmdSlash|MM.CmdLoad|MM.CmdRun|MM.CmdButton
 
 ---Follow a quest: the game's super-tracked quest (and watched); false: follow none.
 ---@class MM.CmdFollow
@@ -120,6 +120,22 @@ local SAFE_VIEW = {
 ---Open the client's quest log on a quest.
 ---@class MM.CmdQuestLog
 ---@field kind "questlog"
+---@field quest MM.QuestID
+
+---A quest in Blizzard's tracker (on) or out of it; no more than the tracker holds.
+---@class MM.CmdQuestWatch
+---@field kind "questwatch"
+---@field quest MM.QuestID
+---@field on boolean
+
+---Share a quest with your group (not idempotent: each shares once).
+---@class MM.CmdQuestShare
+---@field kind "questshare"
+---@field quest MM.QuestID
+
+---The client's Abandon Quest dialog for a quest (not idempotent: each asks once).
+---@class MM.CmdQuestAbandon
+---@field kind "questabandon"
 ---@field quest MM.QuestID
 
 ---Set the user waypoint at pos (Game finds the zone uiMap there); false clears it.
