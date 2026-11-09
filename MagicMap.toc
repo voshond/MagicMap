@@ -51,6 +51,7 @@ runtime\Runtime.lua
 model\Model.lua
 model\Rares.lua
 model\Quests.lua
+model\QuestLog.lua
 model\Offers.lua
 model\Places.lua
 model\Group.lua
@@ -85,6 +86,9 @@ game\commands\slash.lua
 game\commands\load.lua
 game\commands\follow.lua
 game\commands\questlog.lua
+game\commands\questwatch.lua
+game\commands\questshare.lua
+game\commands\questabandon.lua
 game\commands\tooltip.lua
 game\commands\waypoint.lua
 game\commands\way.lua
@@ -98,6 +102,7 @@ game\parts\MinimapState.lua
 game\parts\Interior.lua
 game\parts\Addons.lua
 game\parts\Quests.lua
+game\parts\QuestLog.lua
 game\parts\Offers.lua
 game\parts\Waypoint.lua
 game\parts\Corpse.lua
@@ -146,6 +151,7 @@ ui\Areas.lua
 ui\Quests.lua
 ui\ZoneInfo.lua
 ui\MapPicker.lua
+ui\QuestLog.lua
 ui\Sockets.lua
 ui\You.lua
 ui\Group.lua

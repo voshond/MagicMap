@@ -63,3 +63,6 @@ MagicMapMinimapStandIn
 MinimapBackdrop AddonCompartmentFrame GameTimeFrame TimeManagerClockButton
 # Other addons (always checked for before use)
 FarmHud LibStub
+# The quest log (game/parts/QuestLog.lua, game/commands/quest*.lua: Blizzard_UIPanels_Game's QuestMapFrame)
+Constants GetQuestLogCompletionText GetQuestUiMapID QuestLogPushQuest QuestMapQuestOptions_AbandonQuest
+QUEST_WATCH_QUEST_READY OBJECTIVES_WATCH_TOO_MANY UIErrorsFrame

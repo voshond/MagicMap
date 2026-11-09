@@ -198,6 +198,7 @@ def test_map_and_zone():
 
 def test_zone_hover():
     L, sim, ns, G = client([GOLD])
+    ns.UI.Feel.Set("questlog.sidebar", False)  # (the spots below are the whole big window's)
     UI, S, view = ns.UI, sim.state, ns.UI.Window.view
     L.execute("""local Sim, ns = ...
         -- The zone names lit.

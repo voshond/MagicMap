@@ -157,16 +157,30 @@ function Chrome.OnInsets(fn)
 	fn(Chrome.border.insets)
 end
 
+-- The view inside the border shown, short of the side's room on its right (Chrome.SetSide).
+Chrome.side = 0
+local function PlaceView()
+	local insets = Chrome.border.insets
+	view:ClearAllPoints()
+	view:SetPoint("TOPLEFT", insets[1], -insets[2])
+	view:SetPoint("BOTTOMRIGHT", -insets[3] - Chrome.side, insets[4])
+end
+
 -- Settings > General > Map window > Border: "metal" (the client's frame) or "tooltip"; the view and all placed by it follow.
 function Chrome.SetBorder(style)
 	local shown = borders[style] or borders.metal
 	for _, b in pairs(borders) do b:SetShown(b == shown) end
 	backing:SetShown(shown == borders.tooltip)
 	Chrome.border = shown
-	local insets = shown.insets
-	view:ClearAllPoints()
-	view:SetPoint("TOPLEFT", insets[1], -insets[2])
-	view:SetPoint("BOTTOMRIGHT", -insets[3], insets[4])
-	for _, fn in ipairs(placed) do fn(insets) end
+	PlaceView()
+	for _, fn in ipairs(placed) do fn(shown.insets) end
+end
+
+-- px kept on the view's right, inside the border, for a panel there (the big map's quest log: ui/QuestLog.lua); 0: none.
+-- The map (and the controls and pills placed on it) narrows to leave it.
+function Chrome.SetSide(px)
+	if px == Chrome.side then return end
+	Chrome.side = px
+	PlaceView()
 end
 Chrome.SetBorder("metal")

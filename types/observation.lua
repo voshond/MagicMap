@@ -28,6 +28,7 @@
 ---@field minimap? MM.ObsMinimap     per frame
 ---@field hooked MM.HookedInput[]    per frame; usually empty (see types/view.lua)
 ---@field quests? MM.ObsQuests      on change: your quest log
+---@field questlog? MM.ObsQuestLog  on change: your whole quest log, its headers and quests in order, read while the big map is up
 ---@field places? MM.ObsPlace[]      on change: live places the game marks (Atlas has the static ones)
 ---@field corpse? MM.Pos|false       on change: false = no corpse known
 ---@field waypoint? MM.Pos|false     on change: the user waypoint (C_Map); false = none Model can place: none, or on a map Atlas hasn't (ADR 0001's LOCKED clarification, M3)
@@ -226,3 +227,22 @@ local Oracles = {}
 ---@return boolean|nil
 function Oracles.Inside(quest, col, row) end
 
+
+---obs.questlog (game/parts/QuestLog.lua): the rows Blizzard's world map lists, headers and quests in order.
+---@class MM.ObsQuestLog
+---@field quests integer           quests in the log
+---@field max? integer             how many it holds (Constants.QuestLogConsts)
+---@field [integer] MM.ObsQuestLogRow
+
+---@class MM.ObsQuestLogRow
+---@field header? true             a header (a zone): title alone
+---@field title string
+---@field id? MM.QuestID
+---@field level? integer
+---@field trivial? boolean
+---@field complete? boolean
+---@field failed? boolean
+---@field watched? boolean          in Blizzard's tracker
+---@field followed? boolean         super-tracked
+---@field map? MM.UiMapID           its zone's map (GetQuestUiMapID); nil: none given
+---@field objectives? { text: string, finished: boolean }[]  what it still needs; done: the one completion line

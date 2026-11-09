@@ -1,0 +1,364 @@
+-- The big map's quest log: a panel down the map's right side, inside the border (the map narrows to leave it:
+-- Chrome.SetSide), as Forever's world map lists your quests beside its map (QuestMapFrame's QuestScrollFrame:
+-- Blizzard_UIPanels_Game/Mainline/QuestMapFrame.lua, Camelot's: no tabs, the count beside the title). Model.questlog
+-- (game/parts/QuestLog.lua: Game reads it only while the big map is up), laid out again only when its rev changes
+-- or a header is folded:
+--   * a title band, "Quest Log" and how many quests of how many the log holds (red when over)
+--   * a header a zone, its quests under it; a click folds or unfolds it (UI.saved.questCollapsed: by its name)
+--   * a quest: its level and name in its difficulty's colour (the pins'), its icon (in progress, or ready to turn in),
+--     the glow on the one you follow, a box ticked while it's in Blizzard's tracker (a click: the questwatch
+--     Command), and under it what it still needs (done: the log's completion line)
+-- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin.
+-- A click follows it (the follow Command: Blizzard's super-tracked quest) and flies the map there: to its pin, else
+-- its zone whole. A right-click: Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
+-- The wheel scrolls it. Settings > Quest areas > Quest log > Quest log on the big map turns it off.
+
+local _, ns = ...
+local UI, Model, Atlas, Runtime = ns.UI, ns.Model, ns.Atlas, ns.Runtime
+local Window, Chrome, Camera, Motion, Menus = UI.Window, UI.Chrome, UI.Camera, UI.Motion, UI.Menus
+local Command = ns.Game.Command
+
+local WIDTH = 300
+local MIN_MAP = 400 -- px of map it leaves at least: a narrower big window has no quest log
+local LEVEL = 500 -- over the frame's: under the border's (ui/Chrome.lua's 505), over the map's
+local HEAD = 30 -- the title band
+local HEADER_H, TITLE_H, LINE_H = 24, 18, 14
+local PAD = 10
+local TEXT_X = 26 -- a quest's name, past its icon
+local LINE_X = 34 -- its objectives', past the dash
+local CHECK = 14
+local ICON = 16
+local WHEEL = 3 * TITLE_H -- px a notch
+local GOLD, WHITE, RED = { 1, 0.82, 0 }, { 1, 1, 1 }, { 1, 0.13, 0.13 }
+local LINE_GREY = 0.8
+-- Blizzard's own art (QuestMapFrame.xml, ListTemplates.lua), each drawn only where the client has it.
+local BACKGROUND, DIVIDER = "QuestLog-main-background", "QuestLog-frame-devider"
+local CHECK_BOX, CHECK_MARK, GLOW = "questlog-icon-ticksquare", "questlog-icon-checkmark-yellow", "questlog-quest-glow-yellow"
+local PLUS, MINUS = "common-button-list-plus", "common-button-list-minus"
+local ACTIVE, TURN_IN = "Quest-In-Progress-Icon-yellow", "questturnin"
+
+local QuestLog = { on = true }
+UI.QuestLog = QuestLog
+
+local function Has(atlas) return C_Texture.GetAtlasInfo(atlas) ~= nil end
+local function Art(t, atlas)
+	if Has(atlas) then t:SetAtlas(atlas) end
+	return t
+end
+
+local frame = Window.frame
+local panel = CreateFrame("Frame", nil, frame)
+panel:SetFrameLevel(frame:GetFrameLevel() + LEVEL)
+panel:SetWidth(WIDTH)
+panel:EnableMouse(true) -- (the map under it takes no press)
+panel:Hide()
+QuestLog.panel = panel
+Chrome.OnInsets(function(insets)
+	panel:ClearAllPoints()
+	panel:SetPoint("TOPRIGHT", -insets[3], -insets[2])
+	panel:SetPoint("BOTTOMRIGHT", -insets[3], insets[4])
+end)
+
+local dark = panel:CreateTexture(nil, "BACKGROUND", nil, -2)
+dark:SetAllPoints()
+dark:SetColorTexture(0.06, 0.05, 0.04, 0.97)
+Art(panel:CreateTexture(nil, "BACKGROUND", nil, -1), BACKGROUND):SetAllPoints()
+local edge = panel:CreateTexture(nil, "BORDER")
+edge:SetPoint("TOPLEFT")
+edge:SetPoint("BOTTOMLEFT")
+edge:SetWidth(2)
+edge:SetColorTexture(0, 0, 0, 1)
+
+local title = panel:CreateFontString(nil, "OVERLAY")
+title:SetFontObject(GameFontNormal)
+title:SetPoint("TOPLEFT", PAD, -9)
+title:SetText("Quest Log")
+local count = panel:CreateFontString(nil, "OVERLAY")
+count:SetFontObject(GameFontNormalSmall)
+count:SetPoint("TOPRIGHT", -PAD, -10)
+QuestLog.title, QuestLog.count = title, count
+local rule = Art(panel:CreateTexture(nil, "ARTWORK"), DIVIDER)
+rule:SetPoint("TOPLEFT", 4, -HEAD + 6)
+rule:SetPoint("TOPRIGHT", -4, -HEAD + 6)
+rule:SetHeight(8)
+
+local scroll = CreateFrame("ScrollFrame", nil, panel)
+scroll:SetPoint("TOPLEFT", 0, -HEAD)
+scroll:SetPoint("BOTTOMRIGHT", 0, 4)
+scroll:EnableMouseWheel(true)
+local content = CreateFrame("Frame", nil, scroll)
+content:SetSize(WIDTH, 1)
+scroll:SetScrollChild(content)
+QuestLog.scroll, QuestLog.content = scroll, content
+
+local function ScrollTo(y)
+	local most = math.max(0, content:GetHeight() - scroll:GetHeight())
+	scroll:SetVerticalScroll(math.max(0, math.min(most, y)))
+end
+scroll:SetScript("OnMouseWheel", Runtime.Wrap("map: quest log wheel", function(_, delta)
+	ScrollTo(scroll:GetVerticalScroll() - delta * WHEEL)
+end))
+
+---------------------------------------------------------------------------
+-- What a row does: fold a header; follow a quest and fly there; its menu; its box
+---------------------------------------------------------------------------
+
+local Layout -- (below)
+
+local function Collapsed()
+	local s = UI.saved
+	s.questCollapsed = s.questCollapsed or {}
+	return s.questCollapsed
+end
+
+-- Its pin (Known("quests"): the quests on your map's zones and the shown one's), if it has one.
+local function Pin(id)
+	for _, e in ipairs(Model.Known("quests")) do
+		if e.quest == id then return e end
+	end
+end
+
+-- The map to it: its pin, at the zoom you have, else its zone whole.
+local function Fly(q)
+	local e = Pin(q.id)
+	local p = e and e.pos
+	if p and p.col then
+		Motion.SetFollow(false)
+		Camera.inst = p.inst
+		Motion.FlyTo(p.col, p.row, Camera.cam.zoom)
+		return
+	end
+	local r = q.map and Atlas.MapRect(q.map)
+	if not r then return end
+	local m = Atlas.UiMap(q.map)
+	Camera.inst = r.inst
+	Motion.FlyToRect(r.col0, r.row0, r.col1, r.row1, m and m.name)
+end
+QuestLog.Fly = Fly
+
+local function Watch(q) Command({ kind = "questwatch", quest = q.id, on = not q.watched }) end
+
+local Pick = Runtime.Wrap("map: quest log pick", function(fn) fn() end)
+local function Menu(owner, q)
+	Menus.Show(owner, function(_, root)
+		root:CreateTitle(q.title)
+		root:CreateButton(q.watched and "Untrack" or "Track", function() Pick(function() Watch(q) end) end)
+		root:CreateButton(q.followed and "Stop following" or "Follow", function()
+			Pick(function() Command({ kind = "follow", quest = not q.followed and q.id }) end)
+		end)
+		root:CreateButton("Share", function() Pick(function() Command({ kind = "questshare", quest = q.id }) end) end)
+		root:CreateButton("Abandon", function() Pick(function() Command({ kind = "questabandon", quest = q.id }) end) end)
+		root:CreateDivider()
+		root:CreateButton("Open in quest log", function() Pick(function() Command({ kind = "questlog", quest = q.id }) end) end)
+	end)
+end
+
+local function Clicked(row, button)
+	local r = row.data
+	if not r then return end
+	if r.header then
+		local c = Collapsed()
+		c[r.title] = not c[r.title] or nil
+		Layout()
+	elseif button == "RightButton" then
+		Menu(row, r)
+	else
+		Command({ kind = "follow", quest = r.id })
+		Fly(r)
+	end
+end
+
+local function Entered(row)
+	local r = row.data
+	if not r or r.header then return end
+	row.hl:Show()
+	local e = Pin(r.id)
+	if not e then return end
+	UI.Areas.Hover(e)
+	GameTooltip:SetOwner(row, "ANCHOR_LEFT")
+	UI.QuestTooltip.Fill(GameTooltip, e)
+	GameTooltip:Show()
+end
+
+local function Left(row)
+	row.hl:Hide()
+	UI.Areas.Hover(nil)
+	if GameTooltip:IsOwned(row) then GameTooltip:Hide() end
+end
+
+---------------------------------------------------------------------------
+-- Rows: made as needed, reused
+---------------------------------------------------------------------------
+
+local rows = {}
+QuestLog.rows = rows
+
+local function NewRow()
+	local row = CreateFrame("Button", nil, content)
+	row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	row.hl = row:CreateTexture(nil, "BACKGROUND")
+	row.hl:SetAllPoints()
+	row.hl:SetColorTexture(1, 1, 1, 0.06)
+	row.hl:Hide()
+	row.glow = Art(row:CreateTexture(nil, "BACKGROUND", nil, 1), GLOW)
+	row.glow:SetPoint("TOPLEFT", 2, 0)
+	row.glow:SetPoint("TOPRIGHT", -2, 0)
+	row.glow:SetHeight(TITLE_H + 2)
+	row.icon = row:CreateTexture(nil, "ARTWORK")
+	row.text = row:CreateFontString(nil, "ARTWORK")
+	row.text:SetJustifyH("LEFT")
+	row.text:SetWordWrap(false)
+	local check = CreateFrame("Button", nil, row)
+	check:SetSize(CHECK, CHECK)
+	check:SetPoint("TOPRIGHT", -PAD, -2)
+	Art(check:CreateTexture(nil, "ARTWORK"), CHECK_BOX):SetAllPoints()
+	check.mark = Art(check:CreateTexture(nil, "OVERLAY"), CHECK_MARK)
+	check.mark:SetAllPoints()
+	check:SetScript("OnClick", Runtime.Wrap("map: quest log track", function(self)
+		local r = self:GetParent().data
+		if r and not r.header then Watch(r) end
+	end))
+	row.check = check
+	row.lines = {}
+	row:SetScript("OnClick", Runtime.Wrap("map: quest log click", Clicked, Runtime.FRAME_MS))
+	row:SetScript("OnEnter", Runtime.Wrap("map: quest log hover", Entered))
+	row:SetScript("OnLeave", Runtime.Wrap("map: quest log left", Left))
+	return row
+end
+
+local function Line(row, k)
+	local fs = row.lines[k]
+	if not fs then
+		fs = row:CreateFontString(nil, "ARTWORK")
+		fs:SetFontObject(GameFontHighlightSmall)
+		fs:SetJustifyH("LEFT")
+		fs:SetWordWrap(false)
+		fs:SetPoint("TOPLEFT", LINE_X, -TITLE_H - (k - 1) * LINE_H)
+		fs:SetPoint("RIGHT", -PAD, 0)
+		row.lines[k] = fs
+	end
+	fs:Show()
+	return fs
+end
+
+local function Header(row, r)
+	local folded = Collapsed()[r.title]
+	row:SetHeight(HEADER_H)
+	row.icon:ClearAllPoints()
+	row.icon:SetPoint("LEFT", PAD, 0)
+	row.icon:SetSize(ICON - 2, ICON - 2)
+	Art(row.icon, folded and PLUS or MINUS)
+	row.icon:SetShown(Has(folded and PLUS or MINUS))
+	row.text:SetFontObject(GameFontHighlight)
+	row.text:ClearAllPoints()
+	row.text:SetPoint("LEFT", PAD + ICON + 4, 0)
+	row.text:SetPoint("RIGHT", -PAD, 0)
+	row.text:SetText(r.title)
+	row.text:SetTextColor(WHITE[1], WHITE[2], WHITE[3])
+	row.check:Hide()
+	row.glow:Hide()
+	return HEADER_H
+end
+
+local function Quest(row, r)
+	local c = r.failed and RED or r.color
+	local name = r.level and ("[" .. r.level .. "] " .. r.title) or r.title
+	if r.failed then name = name .. " (Failed)" end
+	row.icon:ClearAllPoints()
+	row.icon:SetPoint("TOPLEFT", PAD, -1)
+	row.icon:SetSize(ICON, ICON)
+	local atlas = r.complete and TURN_IN or ACTIVE
+	Art(row.icon, atlas)
+	row.icon:SetShown(not r.failed and Has(atlas))
+	row.text:SetFontObject(GameFontNormal)
+	row.text:ClearAllPoints()
+	row.text:SetPoint("TOPLEFT", TEXT_X, -2)
+	row.text:SetPoint("RIGHT", row.check, "LEFT", -4, 0)
+	row.text:SetText(name)
+	row.text:SetTextColor(c[1], c[2], c[3])
+	row.check:Show()
+	row.check.mark:SetShown(r.watched)
+	row.glow:SetShown(r.followed and Has(GLOW))
+	for k, o in ipairs(r.objectives) do
+		local fs = Line(row, k)
+		fs:SetText("- " .. o.text)
+		local v = o.finished and 1 or LINE_GREY
+		fs:SetTextColor(v, v, v)
+	end
+	local h = TITLE_H + #r.objectives * LINE_H + 4
+	row:SetHeight(h)
+	return h
+end
+
+local laidRev -- the Model.questlog rev laid out
+-- Each row set again only where it shows something else, or the same somewhere else (Model keeps a quest's row while
+-- it's the same): a count going up touches its own row, those under it only move.
+function Layout()
+	local log = Model.questlog
+	laidRev = log and log.rev
+	local n, y, folded = 0, 0, false
+	for _, r in ipairs(log or {}) do
+		if r.header then folded = Collapsed()[r.title] == true end
+		if r.header or not folded then
+			n = n + 1
+			local row = rows[n] or NewRow()
+			rows[n] = row
+			if row.data ~= r or (r.header and row.folded ~= folded) then
+				for _, fs in ipairs(row.lines) do fs:Hide() end
+				row.data, row.folded = r, r.header and folded
+				row.h = r.header and Header(row, r) or Quest(row, r)
+			end
+			if row.top ~= y then
+				row.top = y
+				row:ClearAllPoints()
+				row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+				row:SetPoint("RIGHT", content, "RIGHT")
+			end
+			y = y + row.h
+			row:Show()
+		end
+	end
+	for i = n + 1, #rows do
+		rows[i].data, rows[i].top = nil, nil
+		rows[i]:Hide()
+	end
+	content:SetHeight(math.max(1, y))
+	ScrollTo(scroll:GetVerticalScroll())
+	local quests, max = log and log.quests or 0, log and log.max
+	local c = max and quests > max and RED or GOLD
+	count:SetText(max and (quests .. "/" .. max) or tostring(quests))
+	count:SetTextColor(c[1], c[2], c[3])
+end
+QuestLog.Layout = Layout
+
+---------------------------------------------------------------------------
+-- Shown on the big map once it's grown (and with it the room on the map's right), laid out as the log changes
+---------------------------------------------------------------------------
+
+-- px it takes off the map's right in a big window w wide: WIDTH, or 0 (off, or a window too narrow for it).
+function QuestLog.Room(w)
+	return QuestLog.on and w - WIDTH >= MIN_MAP and WIDTH or 0
+end
+
+Runtime.Step("ui", "map: quest log", function()
+	local big = UI.BigMap
+	local want = big.big == true and (panel:IsShown() or not big.Tweening()) and QuestLog.Room(frame:GetWidth()) > 0
+	if panel:IsShown() ~= want then
+		panel:SetShown(want)
+		Chrome.SetSide(want and WIDTH or 0)
+	end
+	if not want then return end
+	local log = Model.questlog
+	if (log and log.rev) ~= laidRev then Layout() end
+end, { shownOnly = frame, budgetMs = Runtime.FRAME_MS }) -- (the first layout makes every row's widgets: the frame's budget)
+-- Hidden while big comes back small (ui/BigMap.lua): the panel goes with it, not shown again with the window.
+frame:HookScript("OnHide", Runtime.Wrap("map: quest log hidden", function()
+	panel:Hide()
+	Chrome.SetSide(0)
+end))
+
+UI.Feel.Add("areas", "Quest log", {
+	{ key = "questlog.sidebar", kind = "toggle", label = "Quest log on the big map", default = true,
+		apply = function(v) QuestLog.on = v end,
+		tip = "Your quests down the big map's right side, as Blizzard's world map lists them: click one to follow it and fly there, right-click for more." },
+})
