@@ -121,6 +121,67 @@ def test_chrome():
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 
+
+def test_border_style():
+    """General > Map window > Border (general.border): the metal frame by default; Tooltip swaps it live for Blizzard's
+    tooltip edge (unit-frames' look: edge 12, grey 0.5) over a dark backing, and the view, the zoom buttons and the grip
+    follow its insets; saved across a /reload; Metal again is the look it was."""
+    from fixtures import lua_tools
+    L, sim, ns = fresh()
+    UI, G = ns.UI, L.globals()
+    f, view, c, ctl = UI.Window.frame, UI.Window.view, UI.Chrome, UI.Controls
+    same = L.eval("rawequal")
+    metal, tip = c.borders.metal, c.borders.tooltip
+    shown = lambda x: x.IsShown(x)  # noqa: E731
+
+    def insets(f, view):
+        left, top, w, h = rect(f)
+        vl, vt, vw, vh = rect(view)
+        return (vl - left, top - vt, left + w - vl - vw, vt - vh - (top - h))
+
+    def zoom_y(ins):
+        return max(2, 12 + ins[0] - ins[3]) + 6  # (Controls' PAD 12, bottomY + 6)
+
+    def grip_from_view():
+        g, v = box(c.grip), box(view)
+        return (g[2] - v[2], g[1] - v[1])
+
+    assert UI.Feel.Get("general.border") == "metal" and same(c.border, metal)
+    assert shown(metal) and not shown(tip) and not shown(c.backing)
+    before = insets(f, view)
+    point = ctl.zoomOut.GetPoint(ctl.zoomOut)
+    grip = grip_from_view()
+    assert tuple(metal.insets[i] for i in (1, 2, 3, 4)) == before and point[4] == zoom_y(before)
+
+    UI.Feel.Set("general.border", "tooltip")
+    sim.Run(0.1)
+    assert same(c.border, tip) and shown(tip) and not shown(metal) and shown(c.backing)
+    b = tip.GetBackdrop(tip)
+    assert b.edgeFile == "Interface\\Tooltips\\UI-Tooltip-Border" and b.edgeSize == 12
+    assert tip.GetBackdropBorderColor(tip) == (0.5, 0.5, 0.5, 1)
+    assert tip.GetFrameLevel(tip) - f.GetFrameLevel(f) == 505
+    assert insets(f, view) == (3, 3, 3, 3)
+    zo = ctl.zoomOut.GetPoint(ctl.zoomOut)
+    assert (zo[0], zo[3], zo[4]) == ("BOTTOMRIGHT", -12, zoom_y((3, 3, 3, 3)))
+    assert grip_from_view() == grip  # (it moved with the view)
+    assert G.MagicMap2DB.UI.feel["general.border"] == "tooltip"
+
+    sim.FireEvent("PLAYER_LOGOUT")
+    L2, sim2, ns2 = boot("MagicMap2DB = " + lua_tools(L).Dump(G.MagicMap2DB))  # a /reload
+    sim2.Step()
+    c2, w2 = ns2.UI.Chrome, ns2.UI.Window
+    assert L2.eval("rawequal")(c2.border, c2.borders.tooltip) and shown(c2.borders.tooltip) and not shown(c2.borders.metal)
+    assert insets(w2.frame, w2.view) == (3, 3, 3, 3)
+    assert not errors(sim2, ns2), "\n\n".join(errors(sim2, ns2))
+
+    UI.Feel.Set("general.border", "metal")
+    sim.Run(0.1)
+    assert same(c.border, metal) and shown(metal) and not shown(tip) and not shown(c.backing)
+    assert insets(f, view) == before and ctl.zoomOut.GetPoint(ctl.zoomOut)[4] == point[4] and grip_from_view() == grip
+    assert "feel" not in G.MagicMap2DB.UI or G.MagicMap2DB.UI.feel is None or G.MagicMap2DB.UI.feel["general.border"] is None
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
 def test_title_pieces():
     """The title's pieces (#19), as its settings page (Frame title) chooses and orders them, at rest and on hover, the first the
     title: the local and the server's time (Game's: Model.clock) as Blizzard's clock shows them (its 24-hour box) or as

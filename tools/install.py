@@ -19,17 +19,26 @@ files.txt; tools/luacheck.py fails while the committed TOC differs.
   python3 tools/install.py --wow "D:/Games/World of Warcraft"
   python3 tools/install.py --toc              # only write MagicMap.toc
   python3 tools/install.py --replace-spike    # the spike's MagicMap moved to MagicMap.spike-backup first
+  python3 tools/install.py --host arch        # into the client on another machine, over ssh + rsync
 
-The WoW folder defaults to $MAGICMAP_WOW, else the standard install location.
+The WoW folder defaults to $MAGICMAP_WOW, else the standard install location. With --host (default
+$MAGICMAP_HOST; --host "" installs here) it is the host's: --wow, else $MAGICMAP_HOST_WOW, else HOST_WOW.
+The same checks run against the host's AddOns folder (one `ssh host python3 -`), then rsync -a --delete
+puts the staged build there; the restart hint and the other-MagicMap warning read the host's listing.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
+import json
 import os
+import posixpath
+import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -67,6 +76,7 @@ DEFAULT_WOW = {
     "darwin": "/Applications/World of Warcraft",
     "win32": r"C:\Program Files (x86)\World of Warcraft",
 }
+HOST_WOW = "/mnt/data02/Games/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft"  # arch's (Faugus)
 
 
 def texture_files() -> list[str]:
@@ -113,19 +123,60 @@ def toc_field(toc: str, field: str) -> str:
         return next((line.split(":", 1)[1].strip() for line in f if line.startswith(f"## {field}:")), "")
 
 
-def saved_variables(toc: str) -> str:
-    return toc_field(toc, "SavedVariables")
+def probe(addons: str, addon: str) -> dict:
+    """What the install checks in an AddOns folder. Runs here, or on --host from its own source (and
+    toc_field's) through `ssh host python3 -`: it uses nothing else of this file (and os)."""
+    dest = os.path.join(addons, addon)
+    toc = os.path.join(dest, addon + ".toc")
+    files = []
+    for dirpath, _, filenames in os.walk(dest):
+        files += [os.path.relpath(os.path.join(dirpath, f), dest).replace(os.sep, "/") for f in filenames]
+    others = []
+    for name in sorted(os.listdir(addons)) if os.path.isdir(addons) else []:
+        other = os.path.join(addons, name, name + ".toc")
+        if name != addon and os.path.isfile(other) and toc_field(other, "Title").startswith(addon):
+            others.append([name, toc_field(other, "Title")])
+    return {"addons": os.path.isdir(addons), "link": os.path.islink(dest), "exists": os.path.exists(dest),
+            "toc": os.path.isfile(toc), "saved": toc_field(toc, "SavedVariables") if os.path.isfile(toc) else "",
+            "backup": os.path.exists(os.path.join(addons, addon + ".spike-backup")),
+            "files": sorted(files), "others": others}
 
 
-def title(toc: str) -> str:
-    return toc_field(toc, "Title")
+def ssh(host: str, command: str, stdin: str | None = None) -> str:
+    """command run by the host's shell (quote what goes in it: shlex.quote); its output."""
+    out = subprocess.run(["ssh", host, command], input=stdin, capture_output=True, text=True)
+    if out.returncode != 0:
+        sys.exit(f"ssh {host} {command}: {out.stderr.strip() or f'exit {out.returncode}'}")
+    return out.stdout
+
+
+def probe_host(host: str, addons: str) -> dict:
+    script = ("import json, os\n" + inspect.getsource(toc_field) + inspect.getsource(probe)
+              + f"print(json.dumps(probe({addons!r}, {ADDON!r})))\n")
+    return json.loads(ssh(host, "python3 -", script))
+
+
+def build_rev(files: list[str]) -> str:
+    try:
+        rev = subprocess.check_output(["git", "-C", ROOT, "describe", "--always", "--dirty"], text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        rev = "?"
+    # The files installed, named: uncommitted changes (git can't see them) make a build of their own
+    # (game/Validate.lua keeps one build's log).
+    digest = hashlib.sha1()
+    for f in files:
+        with open(os.path.join(ROOT, f), "rb") as fh:
+            digest.update(f.encode() + b"\0" + fh.read())
+    return rev + "." + digest.hexdigest()[:7]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("flavor", nargs="?", default="_forever_", help="flavor folder (default: _forever_)")
-    parser.add_argument("--wow", default=os.environ.get("MAGICMAP_WOW") or DEFAULT_WOW.get(sys.platform),
-                        help="World of Warcraft folder (default: $MAGICMAP_WOW or the standard location)")
+    parser.add_argument("--wow", help="World of Warcraft folder (default: $MAGICMAP_WOW or the standard location;"
+                                      " with --host $MAGICMAP_HOST_WOW or HOST_WOW)")
+    parser.add_argument("--host", default=os.environ.get("MAGICMAP_HOST"),
+                        help="install into this ssh host's client with rsync (default: $MAGICMAP_HOST)")
     parser.add_argument("--no-check", action="store_true", help="skip the Lua check before installing")
     parser.add_argument("--toc", action="store_true", help="only write MagicMap.toc from the manifests")
     parser.add_argument("--stamp", nargs=2, metavar=("TOC", "REV"), help="only stamp that TOC as build REV (tools/package.sh)")
@@ -141,9 +192,16 @@ def main() -> None:
     if ns.toc:
         return
 
-    addons = os.path.join(ns.wow or "", ns.flavor, "Interface", "AddOns")
-    if not os.path.isdir(addons):
-        sys.exit(f"no {addons}; pass --wow / a flavor folder (has this flavor been run once?)")
+    host = ns.host
+    if host:
+        wow, join = ns.wow or os.environ.get("MAGICMAP_HOST_WOW") or HOST_WOW, posixpath.join
+    else:
+        wow, join = ns.wow or os.environ.get("MAGICMAP_WOW") or DEFAULT_WOW.get(sys.platform), os.path.join
+    where = f"{host}:" if host else ""
+    addons = join(wow or "", ns.flavor, "Interface", "AddOns")
+    seen = probe_host(host, addons) if host else probe(addons, ADDON)
+    if not seen["addons"]:
+        sys.exit(f"no {where}{addons}; pass --wow / a flavor folder (has this flavor been run once?)")
     if not ns.no_check and subprocess.call([sys.executable, os.path.join(ROOT, "tools", "luacheck.py")],
                                            stdout=subprocess.DEVNULL) != 0:
         sys.exit("luacheck found problems (tools/luacheck.py); not installing. --no-check to install anyway")
@@ -155,44 +213,42 @@ def main() -> None:
     if missing:
         sys.exit(f"missing from the checkout: {', '.join(missing)}")
 
-    dest = os.path.join(addons, ADDON)
-    if os.path.islink(dest):
-        sys.exit(f"{dest} is a symlink (already points at a checkout); remove it first if you want a copy")
-    old = os.path.join(dest, f"{ADDON}.toc")
-    if os.path.exists(dest) and not os.path.isfile(old):  # only ever delete our own
-        sys.exit(f"{dest} doesn't look like {ADDON} (no {ADDON}.toc); not deleting it")
-    if os.path.exists(dest) and saved_variables(old) != SAVED:
-        backup = os.path.join(addons, BACKUP)
+    dest = join(addons, ADDON)
+    if seen["link"]:
+        sys.exit(f"{where}{dest} is a symlink (already points at a checkout); remove it first if you want a copy")
+    if seen["exists"] and not seen["toc"]:  # only ever delete our own
+        sys.exit(f"{where}{dest} doesn't look like {ADDON} (no {ADDON}.toc); not deleting it")
+    if seen["exists"] and seen["saved"] != SAVED:
+        backup = join(addons, BACKUP)
         if not ns.replace_spike:
-            sys.exit(f"{dest} is the spike (it saves {saved_variables(old)}): --replace-spike moves it to {backup}"
-                     " first (its saved data isn't read: D9)")
-        if os.path.exists(backup):
-            sys.exit(f"{backup} is there already: move it away first")
-        shutil.move(dest, backup)
-        print(f"the spike's {dest} moved to {backup}")
-    before = set()  # what the client may have seen: a file new to it needs a restart (spike-bugs L5)
-    for dirpath, _, filenames in os.walk(dest):
-        before |= {os.path.relpath(os.path.join(dirpath, f), dest).replace(os.sep, "/") for f in filenames}
-    if os.path.exists(dest):
-        shutil.rmtree(dest)
-    for f in files:
-        target = os.path.join(dest, f)
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        shutil.copy2(os.path.join(ROOT, f), target)
+            sys.exit(f"{where}{dest} is the spike (it saves {seen['saved']}): --replace-spike moves it to"
+                     f" {where}{backup} first (its saved data isn't read: D9)")
+        if seen["backup"]:
+            sys.exit(f"{where}{backup} is there already: move it away first")
+        if host:
+            ssh(host, f"mv -- {shlex.quote(dest)} {shlex.quote(backup)}")
+        else:
+            shutil.move(dest, backup)
+        seen["files"] = []
+        print(f"the spike's {where}{dest} moved to {where}{backup}")
+    before = set(seen["files"])  # what the client may have seen: a file new to it needs a restart (spike-bugs L5)
 
-    try:
-        rev = subprocess.check_output(["git", "-C", ROOT, "describe", "--always", "--dirty"], text=True).strip()
-    except (OSError, subprocess.CalledProcessError):
-        rev = "?"
-    # The files installed, named: uncommitted changes (git can't see them) make a build of their own
-    # (game/Validate.lua keeps one build's log).
-    digest = hashlib.sha1()
-    for f in files:
-        with open(os.path.join(ROOT, f), "rb") as fh:
-            digest.update(f.encode() + b"\0" + fh.read())
-    rev += "." + digest.hexdigest()[:7]
-    stamp_version(os.path.join(dest, f"{ADDON}.toc"), rev)
-    print(f"installed {ADDON} {rev} ({len(files)} files) into {dest}")
+    rev = build_rev(files)
+    with tempfile.TemporaryDirectory() as tmp:
+        stage = os.path.join(tmp, ADDON)
+        for f in files:
+            target = os.path.join(stage, f)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copy2(os.path.join(ROOT, f), target)
+        stamp_version(os.path.join(stage, f"{ADDON}.toc"), rev)
+        if host:
+            if subprocess.call(["rsync", "-a", "--delete", "-s", stage + "/", f"{host}:{dest}/"]) != 0:
+                sys.exit(f"rsync to {where}{dest} failed")
+        else:
+            if os.path.exists(dest):
+                shutil.rmtree(dest)
+            shutil.copytree(stage, dest)
+    print(f"installed {ADDON} {rev} ({len(files)} files) into {where}{dest}")
     if skipped:
         print(f"missing, so left out: {', '.join(skipped)} (tools/gen_questie.py)")
     added = [f for f in files if f not in before]
@@ -201,10 +257,8 @@ def main() -> None:
               f"{', ...' if len(added) > 3 else ''}); /mm lists the commands")
     else:
         print("/reload in game; /mm lists the commands")
-    for name in sorted(os.listdir(addons)):  # an older build under another folder loads too
-        other = os.path.join(addons, name, f"{name}.toc")
-        if name != ADDON and os.path.isfile(other) and title(other).startswith(ADDON):
-            print(f"{os.path.join(addons, name)} ({title(other)}) loads too: turn it off in the AddOns list")
+    for name, other in seen["others"]:  # an older build under another folder loads too
+        print(f"{where}{join(addons, name)} ({other}) loads too: turn it off in the AddOns list")
 
 
 if __name__ == "__main__":

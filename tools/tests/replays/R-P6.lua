@@ -1,5 +1,6 @@
 -- P6: where time went was invisible. CONTAINED: every script on a frame the addon made is a
--- Runtime.Wrap closure (timed per name, isolated), after the map and every /mm command.
+-- Runtime.Wrap closure (timed per name, isolated), after the map and every /mm command. The scripts a frame type
+-- or template brings (the client's: a DropdownButton's OnMouseDown) aren't the addon's (Sim.Intrinsic).
 local T = ...
 local sim, ns = T.Shown()
 local names = {}
@@ -18,7 +19,7 @@ for i = T.simFrames + 1, #all do
 		local fns = { s.main }
 		for _, h in pairs(s.hooks) do fns[#fns + 1] = h end
 		for _, fn in pairs(fns) do
-			if not ns.Runtime.Wrapped(fn) then
+			if not ns.Runtime.Wrapped(fn) and not sim.Intrinsic(fn) then
 				unwrapped[#unwrapped + 1] = (sim.state[f].name or sim.state[f].type) .. ":" .. script
 			end
 		end
