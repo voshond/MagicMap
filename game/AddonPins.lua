@@ -13,7 +13,9 @@
 -- out, so past CONTINENT_ZOOM only pins flagged for continents come. Pins drawn for its own zone map
 -- alone (Questie's -1, its route lines) and frames bigger than pins never do (Questie's turn-ins stand:
 -- our quests layer draws none since Blizzard's blips do; its turnIns rule, AddonPins.lua:212-220, holds none), nor, with
--- only tracked quests on the map (View.trackedOnly), an untracked quest's icons (Questie's hideUntrackedQuestsMapIcons rule). A Questie log is thousands of
+-- only tracked quests on the map (View.trackedOnly), an untracked quest's icons (Questie's hideUntrackedQuestsMapIcons rule).
+-- Hovering a hosted Questie icon, its tooltip lists the icons we host near it (QuestieTip): Questie's own looks only at
+-- Blizzard's world map's pins. A Questie log is thousands of
 -- pins, so borrowing and giving back is a Runtime.Job: NEWS_MS a frame for one with something to show
 -- soon (opened, a new socket or map, an addon's layer toggled, the library changed, given back, the
 -- zoom across CONTINENT_ZOOM), JOB_MS for the regular one every SYNC_EVERY (pins the library took
@@ -151,6 +153,30 @@ local function SetLevel(icon, level, fixed)
 	if fixed then icon:SetFixedFrameLevel(true) end
 end
 
+-- Questie's tooltip for a hovered world icon lists the icons near it among the pins on Blizzard's world map
+-- (MapIconTooltip.lua: worldmapProvider:GetMap():EnumeratePinsByTemplate): those are the map it showed last, your zone,
+-- so one we host anywhere else listed nothing and showed no tooltip. Hovering one of ours, its tooltip again with the
+-- icons we host near it given (ShowOnTooltip's icons: listed wherever they are), as its own cluster rule picks them on
+-- Blizzard's map: the same area, within CLUSTER of it (its maps' percent). Icons without Questie's fields left be.
+local CLUSTER = 1 -- MapIconTooltip.lua's maxDistCluster on a zone map
+local hooked = setmetatable({}, { __mode = "k" }) -- icons whose OnEnter we hooked (once: a hook stays)
+local function QuestieTip(icon)
+	if not hosted[icon] or type(rawget(icon, "data")) ~= "table" or not (icon.x and icon.y and icon.AreaID) then return end
+	local loader = QuestieLoader
+	local tip = loader and loader.ImportModule and loader:ImportModule("MapIconTooltip")
+	if not (tip and tip.ShowOnTooltip) then return end
+	local near = {}
+	for other in pairs(hosted) do
+		if other.AreaID == icon.AreaID and other.x and other.y and type(rawget(other, "data")) == "table"
+			and math.max(math.abs(other.x - icon.x), math.abs(other.y - icon.y)) < CLUSTER then
+			near[#near + 1] = other
+		end
+	end
+	GameTooltip:Hide() -- (its own pass just now: shown, it would refuse another for 0.05 s)
+	tip.ShowOnTooltip(icon, GameTooltip, icon, near)
+end
+local OnEnter = Runtime.Wrap("game.addon pins: questie tip", QuestieTip)
+
 local function Claim(icon, level)
 	local rec = { home = icon:GetParent(), points = {}, shown = icon:IsShown(), level = icon:GetFrameLevel(),
 		fixed = icon:HasFixedFrameLevel(), socket = socket, inst = inst }
@@ -160,6 +186,10 @@ local function Claim(icon, level)
 	icon:ClearAllPoints()
 	icon:Show() -- as the library does when it places one
 	hosted[icon] = rec
+	if not hooked[icon] and icon.HookScript then
+		hooked[icon] = true
+		icon:HookScript("OnEnter", OnEnter)
+	end
 	return rec
 end
 

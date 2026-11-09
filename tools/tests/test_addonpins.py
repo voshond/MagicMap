@@ -177,3 +177,44 @@ def test_minimap_pins():
     assert not ns.Game.minimap.engaged and same(q.Minimap, mm) and same(sim.hbdPins.Minimap, mm)
     assert same(herb.GetParent(herb), mm) and herb.IsVisible(herb) and not host.IsShown(host)
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_questie_tooltips_far_from_you():
+    """Questie's tooltip lists the icons near the hovered one among the pins on Blizzard's world map (your zone): for
+    one we host elsewhere that was none, no tooltip. Hovering ours, Game asks it again with the icons we host near it
+    (the same area, within 1% of its map), the hovered among them; none from another area or further off."""
+    L, sim, ns = boot()
+    sim.Slash("/mm toggle")
+    ns.UI.Window.frame.SetSize(ns.UI.Window.frame, 300, 300)
+    sim.Run(3)
+    q = sim.LoadQuestie()
+    sim.FireEvent("ADDON_LOADED", "Questie")
+    L.execute("""local Sim = ...
+        Sim.tipCalls = {}
+        QuestieLoader = { ImportModule = function(_, name)
+            if name ~= "MapIconTooltip" then return nil end
+            return { ShowOnTooltip = function(self, tooltip, owner, icons)
+                Sim.tipCalls[#Sim.tipCalls + 1] = { self = self, tooltip = tooltip, owner = owner, icons = icons }
+            end }
+        end }""", sim)
+    # (x, y in its map's percent, AreaID): a, b near each other; c the same area further off; d another area.
+    spots = {"a": (30.0, 50.0, 12), "b": (30.5, 50.4, 12), "c": (34.0, 50.0, 12), "d": (30.2, 50.1, 40)}
+    icons = {}
+    for name, (x, y, area) in spots.items():
+        icon = sim.QuestieIcon(L.table_from({"Type": "available", "Id": 80 + len(icons)}))
+        icon.x, icon.y, icon.AreaID = x, y, area
+        q.AddWorldMapIconMap(q, L.globals().Questie, icon, 1429, x / 100, y / 100, 3)
+        icons[name] = icon
+    sim.Run(0.5)
+    same = L.eval("rawequal")
+    sim.FireScript(icons["a"], "OnEnter")
+    call = sim.tipCalls[1]
+    listed = [n for n, icon in icons.items() if any(same(icon, i) for i in call.icons.values())]
+    assert same(call.self, icons["a"]) and same(call.owner, icons["a"]) and same(call.tooltip, L.globals().GameTooltip)
+    assert sorted(listed) == ["a", "b"]
+    # Given back (the window hidden), its hover is Questie's own again.
+    ns.UI.Window.frame.Hide(ns.UI.Window.frame)
+    sim.Run(0.5)
+    sim.FireScript(icons["a"], "OnEnter")
+    assert len(sim.tipCalls) == 1
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
