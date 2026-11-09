@@ -105,6 +105,13 @@ def test_questlog_panel():
     assert tuple(frontier.text.GetTextColor(frontier.text))[:3] == (1, 0.5, 0.25)  # 3 over you (8): orange
     assert tuple(candles.text.GetTextColor(candles.text))[:3] == (1, 0.82, 0)  # yellow
     assert candles.GetTop(candles) < frontier.GetTop(frontier)
+    # Each row as tall as it's set, its lines under its name (a RIGHT anchor would size it from the list's middle).
+    for r in ql.rows.values():
+        if r.IsShown(r):
+            assert abs(sim.Rect(r)[3] - sim.state[r].height) < 1e-6, r.text.GetText(r.text)
+    obj = next(fs for fs in candles.lines.values() if fs.IsShown(fs))
+    points = [obj.GetPoint(obj, i)[0] for i in range(1, obj.GetNumPoints(obj) + 1)]
+    assert sorted(points) == ["TOPLEFT", "TOPRIGHT"] and obj.GetPoint(obj, 1)[4] <= -18
 
     # The box: in Blizzard's tracker, and out again.
     assert not candles.check.mark.IsShown(candles.check.mark)

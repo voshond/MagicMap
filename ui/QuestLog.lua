@@ -234,7 +234,7 @@ local function Line(row, k)
 		fs:SetJustifyH("LEFT")
 		fs:SetWordWrap(false)
 		fs:SetPoint("TOPLEFT", LINE_X, -TITLE_H - (k - 1) * LINE_H)
-		fs:SetPoint("RIGHT", -PAD, 0)
+		fs:SetPoint("TOPRIGHT", -PAD, -TITLE_H - (k - 1) * LINE_H) -- (TOPRIGHT, not RIGHT: a RIGHT would set its height too)
 		row.lines[k] = fs
 	end
 	fs:Show()
@@ -273,7 +273,7 @@ local function Quest(row, r)
 	row.text:SetFontObject(GameFontNormal)
 	row.text:ClearAllPoints()
 	row.text:SetPoint("TOPLEFT", TEXT_X, -2)
-	row.text:SetPoint("RIGHT", row.check, "LEFT", -4, 0)
+	row.text:SetPoint("TOPRIGHT", row.check, "TOPLEFT", -4, 0)
 	row.text:SetText(name)
 	row.text:SetTextColor(c[1], c[2], c[3])
 	row.check:Show()
@@ -312,7 +312,7 @@ function Layout()
 				row.top = y
 				row:ClearAllPoints()
 				row:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-				row:SetPoint("RIGHT", content, "RIGHT")
+				row:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y) -- (a RIGHT would centre it on the list: its height from the two)
 			end
 			y = y + row.h
 			row:Show()
