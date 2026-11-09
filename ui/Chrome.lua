@@ -4,7 +4,8 @@
 -- more than their visible metal: spike-bugs L2). Above it, at the spike's levels
 -- (Core.lua:142-153, 177-182, 316-339): the band (title, gear, mode: ui/Title.lua,
 -- ui/Controls.lua), the map's controls and the resize grip. Everything else of the
--- template is hidden (Core.lua:383-392).
+-- template is hidden (Core.lua:383-392). Settings > General > Map window > Border swaps the metal for Blizzard's
+-- tooltip edge (Chrome.SetBorder): the view and what Chrome.OnInsets places follow the shown one's insets.
 
 local _, ns = ...
 local UI = ns.UI
@@ -75,7 +76,27 @@ local function Border(level, ref)
 	return b
 end
 
+-- Settings > General > Map window > Border's other look: Blizzard's chamfered tooltip edge, as unit-frames draws its
+-- frames (Backdrop.lua, Theme.lua: "Blizzard Tooltip", 12, grey 0.5). Edge only: its background would cover the
+-- view under it, so the dark behind the corners is the frame's own (TOOLTIP_BACKING, below).
+local TOOLTIP_EDGE, TOOLTIP_BG = "Interface\\Tooltips\\UI-Tooltip-Border", "Interface\\Tooltips\\UI-Tooltip-Background"
+local TOOLTIP_SIZE, TOOLTIP_INSET, TOOLTIP_GREY = 12, 3, 0.5
+local TOOLTIP_BACKING = { 0, 0, 0, 0.85 }
+local function Tooltip(level)
+	local b = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+	b:SetAllPoints()
+	b:SetFrameLevel(level)
+	b:SetBackdrop({ edgeFile = TOOLTIP_EDGE, edgeSize = TOOLTIP_SIZE })
+	b:SetBackdropBorderColor(TOOLTIP_GREY, TOOLTIP_GREY, TOOLTIP_GREY, 1)
+	b.insets = { TOOLTIP_INSET, TOOLTIP_INSET, TOOLTIP_INSET, TOOLTIP_INSET }
+	return b
+end
+
 local base = frame:GetFrameLevel()
+
+local borders = { metal = Border(base + LEVEL_BORDER, frame.NineSlice), tooltip = Tooltip(base + LEVEL_BORDER) }
+Chrome.borders = borders
+Chrome.border = borders.metal -- the one shown (Chrome.SetBorder)
 
 -- The band: above the border, holding the zone line and its buttons. No mouse of its own.
 local band = CreateFrame("Frame", nil, frame)
@@ -83,9 +104,11 @@ band:SetFrameLevel(base + LEVEL_BAND)
 band:SetAllPoints()
 Chrome.band = band
 
+-- On the view's corner, as far from it as the metal border puts it (4 px in from the frame's): it moves with the view.
+local metal = borders.metal.insets
 local grip = CreateFrame("Button", nil, frame)
 grip:SetSize(14, 14)
-grip:SetPoint("BOTTOMRIGHT", -4, 4)
+grip:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", metal[3] - 4, 4 - metal[4])
 grip:SetFrameLevel(base + LEVEL_GRIP)
 grip:SetAlpha(0.8)
 grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
@@ -97,9 +120,6 @@ grip:SetScript("OnMouseUp", Runtime.Wrap("map: resized", function()
 	Window.Moved()
 end))
 Chrome.grip = grip
-
-local border = Border(base + LEVEL_BORDER, frame.NineSlice)
-Chrome.border = border
 
 -- Inside the map, shown while you hover: the zoom buttons and reset (ui/Controls.lua).
 local controls = CreateFrame("Frame", nil, frame)
@@ -115,12 +135,38 @@ overlay:SetFrameLevel(base + LEVEL_CONTROLS)
 Chrome.overlay = overlay
 
 -- Everything of the template but its border's art goes; the map stops where that art begins.
-local KEEP = { [view] = true, [band] = true, [grip] = true, [border] = true, [controls] = true, [overlay] = true }
+local KEEP = { [view] = true, [band] = true, [grip] = true, [borders.metal] = true, [borders.tooltip] = true,
+	[controls] = true, [overlay] = true }
 for _, r in ipairs({ frame:GetRegions() }) do r:Hide() end
 for _, c in ipairs({ frame:GetChildren() }) do
 	if not KEEP[c] then c:Hide() end
 end
-local insets = border.insets
-view:ClearAllPoints()
-view:SetPoint("TOPLEFT", insets[1], -insets[2])
-view:SetPoint("BOTTOMRIGHT", -insets[3], insets[4])
+
+-- The tooltip border's dark: on the frame, under the view, showing round its edge and behind the chamfered corners.
+local backing = frame:CreateTexture(nil, "BACKGROUND")
+backing:SetTexture(TOOLTIP_BG)
+backing:SetVertexColor(unpack(TOOLTIP_BACKING))
+backing:SetPoint("TOPLEFT", TOOLTIP_INSET, -TOOLTIP_INSET)
+backing:SetPoint("BOTTOMRIGHT", -TOOLTIP_INSET, TOOLTIP_INSET)
+Chrome.backing = backing
+
+-- Who places by the border's insets (ui/Controls.lua: the zoom buttons, the quest pill): fn(insets), now and on each change.
+local placed = {}
+function Chrome.OnInsets(fn)
+	placed[#placed + 1] = fn
+	fn(Chrome.border.insets)
+end
+
+-- Settings > General > Map window > Border: "metal" (the client's frame) or "tooltip"; the view and all placed by it follow.
+function Chrome.SetBorder(style)
+	local shown = borders[style] or borders.metal
+	for _, b in pairs(borders) do b:SetShown(b == shown) end
+	backing:SetShown(shown == borders.tooltip)
+	Chrome.border = shown
+	local insets = shown.insets
+	view:ClearAllPoints()
+	view:SetPoint("TOPLEFT", insets[1], -insets[2])
+	view:SetPoint("BOTTOMRIGHT", -insets[3], insets[4])
+	for _, fn in ipairs(placed) do fn(insets) end
+end
+Chrome.SetBorder("metal")

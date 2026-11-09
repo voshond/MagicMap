@@ -1243,7 +1243,8 @@ for i, path in ipairs({ "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up", "Inter
 	"Interface\\Minimap\\PartyRaidBlipsV2", "Interface\\GossipFrame\\VendorGossipIcon", "Interface\\Icons\\Ability_Tracking",
 	"Interface\\Icons\\INV_Misc_EngGizmos_01", "Interface\\Buttons\\UI-PlusButton-Up", "Interface\\Buttons\\UI-MinusButton-Up",
 	"Interface\\Buttons\\UI-PlusButton-Hilight", "Interface\\Minimap\\MinimapArrow",
-	"Interface\\Common\\UI-TooltipDivider-Transparent" }) do
+	"Interface\\Common\\UI-TooltipDivider-Transparent", "Interface\\Tooltips\\UI-Tooltip-Border",
+	"Interface\\Tooltips\\UI-Tooltip-Background" }) do
 	FILES[path:lower()] = 100000 + i
 end
 function GetFileIDFromPath(path) return FILES[(path:lower():gsub("/", "\\"))] end
@@ -1683,6 +1684,17 @@ function Sim.Pick(e)
 	if r ~= MenuResponse.Open and r ~= MenuResponse.Refresh then Sim.menu = nil end
 	if menu and menu.owner then dropdownText(menu.owner, dropdownMenu(menu.owner)) end
 	return r
+end
+
+-- BackdropTemplate (Blizzard_SharedXMLBase/Backdrop.lua): what it was given, to read back.
+TEMPLATE_SETUP.BackdropTemplate = function(f)
+	f.SetBackdrop = function(self, b) S[self].backdrop = b end
+	f.GetBackdrop = function(self) return S[self].backdrop end
+	f.SetBackdropBorderColor = function(self, r, g, b, a) S[self].backdropBorder = { r, g, b, a or 1 } end
+	f.GetBackdropBorderColor = function(self)
+		local c = S[self].backdropBorder or { 1, 1, 1, 1 }
+		return c[1], c[2], c[3], c[4]
+	end
 end
 
 -- ColorSwatchTemplate (Blizzard_SharedXMLBase/ColorSwatch.xml): a 16 px swatch, its border white, gold under the cursor.
