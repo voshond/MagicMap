@@ -937,6 +937,8 @@ local TEMPLATES = { UIPanelCloseButton = true, UIPanelButtonTemplate = true, Gam
 	BackdropTemplate = true }
 -- What a template or a frame type makes in a new frame (its regions, its intrinsic scripts): filled in below.
 local TEMPLATE_SETUP, TYPE_SETUP = {}, {}
+-- The scripts they set: the client's own, not the addon's (Sim.Intrinsic).
+local INTRINSIC = setmetatable({}, { __mode = "k" })
 
 function CreateFrame(typ, name, parent, template)
 	local cls = FRAME_TYPES[typ]
@@ -968,6 +970,10 @@ function CreateFrame(typ, name, parent, template)
 	if TYPE_SETUP[cls] then TYPE_SETUP[cls](f) end
 	for t in tostring(template or ""):gmatch("[^,%s]+") do
 		if TEMPLATE_SETUP[t] then TEMPLATE_SETUP[t](f) end
+	end
+	for _, s in pairs(S[f].scripts) do
+		INTRINSIC[s.main] = true
+		for _, h in pairs(s.hooks) do INTRINSIC[h] = true end
 	end
 	return f
 end
@@ -1120,6 +1126,7 @@ end
 
 -- Every frame, created in order (for scenarios to find buttons etc.).
 function Sim.Frames() return allFrames end
+function Sim.Intrinsic(fn) return INTRINSIC[fn] == true end -- a script a frame type or template set, not the addon
 function Sim.Named(name) return named[name] end
 
 ---------------------------------------------------------------------------
