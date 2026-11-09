@@ -342,14 +342,14 @@ function QuestLog.Room(w)
 	return QuestLog.on and Fits(w) and WIDTH or 0
 end
 
--- The toggle: a chevron at the map's top right, against the panel (Blizzard's spellbook page arrows): right, ">",
+-- The toggle: a chevron at the map's top right, on the zoom buttons' centre line, against the panel (Blizzard's spellbook page arrows): right, ">",
 -- puts the panel away; left, "<", brings it out. The same setting as Settings' (questlog.sidebar). Shown on the big
 -- map once grown, where the window has room for the panel.
 local CHEVRON = "Interface\\Buttons\\UI-SpellbookIcon-%sPage-%s"
 local TOGGLE = 26
 local toggle = CreateFrame("Button", nil, Chrome.overlay)
 toggle:SetSize(TOGGLE, TOGGLE)
-toggle:SetPoint("TOPRIGHT", -2, -2)
+toggle:SetPoint("CENTER", Chrome.overlay, "TOPRIGHT", -UI.Controls.COLUMN, -2 - TOGGLE / 2) -- (on the zoom buttons' line)
 toggle:Hide()
 QuestLog.toggle = toggle
 local function ToggleLook()

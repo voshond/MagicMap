@@ -145,12 +145,18 @@ def test_questlog_panel():
     def chevron():
         return sim.state[sim.state[toggle].normal].texture
     assert toggle.IsShown(toggle) and "NextPage-Up" in chevron()
-    assert abs(toggle.GetRight(toggle) - view.GetRight(view) + 2) < 1e-6
+    zoom = (ns.UI.Controls.zoomIn, ns.UI.Controls.zoomOut, ns.UI.Controls.zoomReset)
+
+    def centre_x(f):
+        return f.GetLeft(f) + f.GetWidth(f) / 2
+
+    assert abs(centre_x(toggle) - (view.GetRight(view) - ns.UI.Controls.COLUMN)) < 1e-6  # (on the zoom buttons' line)
+    assert all(abs(centre_x(b) - centre_x(toggle)) < 1e-6 for b in zoom)
     sim.Click(toggle)
     sim.Run(0.1)
     assert not panel.IsShown(panel) and UI.Chrome.side == 0 and UI.Feel.Get("questlog.sidebar") is False
     assert toggle.IsShown(toggle) and "PrevPage-Up" in chevron()
-    assert abs(toggle.GetRight(toggle) - f.GetRight(f)) < 10  # (against the border now)
+    assert all(abs(centre_x(b) - centre_x(toggle)) < 1e-6 for b in zoom)  # (the line moved with the map)
     sim.Click(toggle)
     sim.Run(0.1)
     assert panel.IsShown(panel) and UI.Chrome.side == 300 and "NextPage-Up" in chevron()
