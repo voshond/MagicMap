@@ -1,6 +1,7 @@
 """The simulated client (wowsim.lua) held to the real one's API: every widget method it defines, per object type, and
 every global function and C_* / table function it installs must be in wow-ui-testing's client API snapshot for the
-Forever build (wowmock/api.lua: documented, defined by a Blizzard Lua mixin, or an engine call Blizzard's code makes).
+Forever build (wowmock/api.lua: documented, defined by a Blizzard Lua mixin, a Lua VM addition the engine defines, or
+an engine call Blizzard's code makes).
 A sim the client doesn't match lets the addon call what the game hasn't got, and every test still passes.
 
 Today's gaps are in api_allowlist.json, each with its reason: a ratchet (as maplint-baseline.json), so a new gap
@@ -60,7 +61,7 @@ for c, class in pairs(Sim.classes) do
         end
     end
 end
-local function client(name) return API.Function(name) or API.LuaGlobal(name) or API.Called(name) end
+local function client(name) return API.Function(name) or API.LuaGlobal(name) or API.EngineLua(name) or API.Called(name) end
 -- C_Map and the like hold only documented functions; another table is an object (a font, a colour, Blizzard's Lua)
 -- whose methods may come from a Blizzard mixin (ColorMixin's GetRGB).
 local namespaces = {}
