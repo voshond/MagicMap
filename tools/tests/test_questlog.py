@@ -151,12 +151,12 @@ def test_questlog_panel():
         return f.GetLeft(f) + f.GetWidth(f) / 2
 
     assert abs(centre_x(toggle) - (view.GetRight(view) - ns.UI.Controls.COLUMN)) < 1e-6  # (on the zoom buttons' line)
-    assert all(abs(centre_x(b) - centre_x(toggle)) < 1e-6 for b in zoom)
+    assert all(abs(centre_x(b) - 1 - centre_x(toggle)) < 1e-6 for b in zoom)  # (their glyphs a px left of centre)
     sim.Click(toggle)
     sim.Run(0.1)
     assert not panel.IsShown(panel) and UI.Chrome.side == 0 and UI.Feel.Get("questlog.sidebar") is False
     assert toggle.IsShown(toggle) and "PrevPage-Up" in chevron()
-    assert all(abs(centre_x(b) - centre_x(toggle)) < 1e-6 for b in zoom)  # (the line moved with the map)
+    assert all(abs(centre_x(b) - 1 - centre_x(toggle)) < 1e-6 for b in zoom)  # (the line moved with the map)
     sim.Click(toggle)
     sim.Run(0.1)
     assert panel.IsShown(panel) and UI.Chrome.side == 300 and "NextPage-Up" in chevron()

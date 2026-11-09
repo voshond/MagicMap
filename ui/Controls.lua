@@ -527,9 +527,11 @@ local function Place()
 	line:ClearAllPoints()
 	line:SetPoint("BOTTOMLEFT", PAD / sc, bottomY / sc) -- /: never 0 (the scale's least is 0.8)
 end
--- The zoom buttons' centre line, px in from the map's right edge (zoomOut's: PAD in, 20 wide): what lines up on it (the
--- quest log's chevron, ui/QuestLog.lua).
-Controls.COLUMN = PAD + 20 / 2
+-- The zoom buttons' line as you see it, px in from the map's right edge: their centre (zoomOut's: PAD in, 20 wide), plus
+-- GLYPH_LEFT, as far left of it as Blizzard's + and - are drawn in their buttons (measured in the client: ~1 px). What
+-- lines up on it: the quest log's chevron (ui/QuestLog.lua), whose art is centred in its file.
+local GLYPH_LEFT = 1
+Controls.COLUMN = PAD + 20 / 2 + GLYPH_LEFT
 Chrome.OnInsets(function(insets)
 	bottomY = math.max(2, PAD + insets[1] - insets[4])
 	zoomOut:ClearAllPoints()
