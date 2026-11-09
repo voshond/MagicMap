@@ -74,6 +74,7 @@ function Sim.Price(on) Sim.pricing = on and true or false end
 local S = setmetatable({}, { __mode = "k" }) -- widget -> internal state
 Sim.state = S
 local classes = {}
+Sim.classes = classes -- (tools/tests/test_api_contract.py holds their methods to the client's API)
 local allFrames = {}  -- in creation order
 local named = {}
 
@@ -1767,16 +1768,14 @@ Enum = { UIMapType = { Cosmic = 0, World = 1, Continent = 2, Zone = 3, Dungeon =
 -- Addon memory (every client) and the addon profiler (Retail-engine clients).
 Sim.addons = { { "MagicMap", 2400 }, { "Questie", 48000 }, { "Details", 9000 } }
 function UpdateAddOnMemoryUsage() end
-function GetNumAddOns() return #Sim.addons end
-function GetAddOnInfo(i) return Sim.addons[i] and Sim.addons[i][1] end
 function GetAddOnMemoryUsage(i)
 	for j, a in ipairs(Sim.addons) do
 		if j == i or a[1] == i then return a[2] end
 	end
 	return 0
 end
-C_AddOns = {
-	GetNumAddOns = GetNumAddOns,
+C_AddOns = { -- (the bare GetNumAddOns and GetAddOnInfo: gone from Forever's client, C_AddOns' alone)
+	GetNumAddOns = function() return #Sim.addons end,
 	GetAddOnInfo = function(i)
 		for j, a in ipairs(Sim.addons) do
 			if j == i or a[1] == i then return a[1], a[1], "", true, "INSECURE", false end

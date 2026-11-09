@@ -169,6 +169,11 @@ bash scripts/fetch-wut.sh                                            # .wut/ at 
 WUT_DIR=~/Documents/GitHub/wow-ui-testing .venv/bin/python tools/proof.py
 ```
 
+The same library holds the sim to the real client: `tools/tests/test_api_contract.py` checks every widget method
+`tools/tests/wowsim.lua` defines (per object type) and every global and `C_*` function it installs against wowmock's
+API snapshot for the Forever build. Today's gaps are in `tools/tests/api_allowlist.json`, each with its reason: a
+ratchet, so a new one fails and so does an entry that's no longer a gap.
+
 `tools/proof/wowsim.lua` is the adapter over the sim's widgets. The ground (the client's tiles) is left out and
 Blizzard's atlases are dashed boxes: the pictures prove layout, text and colour, as the tests can't (an anchor that
 stretches a row reads the same text). PNGs need `rsvg-convert`.

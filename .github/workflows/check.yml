@@ -14,5 +14,16 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: tools/requirements-dev.txt
+      - uses: actions/cache@v4
+        with:
+          path: .wut
+          key: wut-${{ hashFiles('.wut-version') }}
+      - name: wow-ui-testing at .wut-version's commit (wowmock's API snapshot for test_api_contract)
+        run: |
+          sudo apt-get install -y -qq luajit
+          bash scripts/fetch-wut.sh
+        env:
+          # The library is private: WUT_TOKEN (a token that reads voshond/wow-ui-testing) until it's public.
+          GITHUB_TOKEN: ${{ secrets.WUT_TOKEN || github.token }}
       - name: luacheck (globals, TOC, boundaries), the / lint and tests
         run: tools/check.sh

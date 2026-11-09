@@ -12,18 +12,17 @@ left out, an atlas is a dashed box named after it. What the pictures prove is th
 text and its colours. PNGs need rsvg-convert. Exits 1 if a scenario failed or the library couldn't be fetched (2).
 """
 import os
-import subprocess
 import sys
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(TOOLS, "tests"))
 sys.path.insert(0, TOOLS)
 
+import wut  # noqa: E402
 from test_quests import CANDLES, FRONTIER, GOLD, LOVERS, client  # noqa: E402
 
 ROOT = os.path.dirname(TOOLS)
 OUT = os.path.join(ROOT, ".proof")
-FETCH = os.path.join(ROOT, "scripts", "fetch-wut.sh")
 
 PROOF = """
 local Sim, ns, wowproofDir, adapterPath, outDir = ...
@@ -93,15 +92,8 @@ def scenarios(L, sim, ns):
     ]
 
 
-def library():
-    """wow-ui-testing's folder: .wut/ at the pinned commit (fetched when it isn't there yet), or WUT_DIR's."""
-    run = subprocess.run(["bash", FETCH, ROOT], stdout=subprocess.PIPE, text=True)
-    lib = run.stdout.strip().splitlines()[-1] if run.returncode == 0 and run.stdout.strip() else None
-    return lib if lib and os.path.exists(os.path.join(lib, "wowproof", "init.lua")) else None
-
-
 def main(filters):
-    lib = library()
+    lib = wut.library("wowproof/init.lua")
     if not lib:
         print("wowproof not found: scripts/fetch-wut.sh couldn't fetch wow-ui-testing (or WUT_DIR has no wowproof/)")
         return 2
