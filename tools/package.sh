@@ -47,6 +47,7 @@ import sim
 want = [f for f in luacheck.toc_files() if data or f not in sim.QUESTIE] + ["Textures/BaseEasternKingdoms.blp", "Textures/BaseKalimdor.blp", *sorted("Textures/" + f for f in os.listdir(os.path.join(root, "Textures")) if f.startswith(("Patch", "Sea", "Repaint")))] + ["LICENSE", "NOTICE.md"]
 missing = [f for f in want if not os.path.isfile(os.path.join(root, f))]
 extra = [f for f in sim.QUESTIE if not data and os.path.exists(os.path.join(root, f))]
+extra += [os.path.relpath(os.path.join(d, n), root) for d, ds, _ in os.walk(root) for n in ds if n == ".wut"]
 s = sim.boot(saved="MagicMap2DB = nil")
 s.run(6); s.press("M"); s.run(2); s.wheel(-6); s.run(2); s.drag(200, 80); s.run(2); s.press("M"); s.run(8)
 s.slash("/mm help"); s.slash("/mm toggle"); s.run(1); s.slash("/mm toggle"); s.run(2)
