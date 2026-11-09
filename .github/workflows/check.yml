@@ -23,7 +23,7 @@ jobs:
           sudo apt-get install -y -qq luajit
           bash scripts/fetch-wut.sh
         env:
-          # The library is private: WUT_TOKEN (a token that reads voshond/wow-ui-testing) until it's public.
-          GITHUB_TOKEN: ${{ secrets.WUT_TOKEN || github.token }}
+          # (public: the token only spares GitHub's anonymous rate limit)
+          GITHUB_TOKEN: ${{ github.token }}
       - name: luacheck (globals, TOC, boundaries), the / lint and tests
         run: tools/check.sh
