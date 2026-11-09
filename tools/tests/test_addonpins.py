@@ -65,6 +65,17 @@ def test_world_pins():
     sim.Run(0.5)
     assert len(hosted(L, icons, canvas)) == 8
 
+    # Nothing of ours over the map takes the mouse from them: the controls' and pills' frames (spanning the map, a level
+    # over the socket) stay see-through, whatever turned their mouse on.
+    c = ns.UI.Chrome
+    for f in (c.controls, c.overlay):
+        assert not f.IsMouseEnabled(f) and not f.IsMouseMotionEnabled(f)
+        f.EnableMouse(f, True)
+        f.SetMouseMotionEnabled(f, True)
+    sim.Step()
+    for f in (c.controls, c.overlay):
+        assert not f.IsMouseEnabled(f) and not f.IsMouseMotionEnabled(f)
+
     ns.UI.Engine.SetLayer("quests", False)  # ours off: Questie's turn-in still shown, by the next regular pass
     sim.Run(1.1)
     assert "turnIn" in hosted(L, icons, canvas)

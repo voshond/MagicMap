@@ -618,6 +618,7 @@ local function ToggleFollow() UI.Motion.SetFollow(not Camera.follow, true) end
 -- probes cost each frame, so these share one).
 local since = EVERY
 Runtime.Step("ui", "map: controls", function(elapsed)
+	Chrome.Unblock()
 	local want = (Window.frame:IsMouseOver(REACH, -REACH, 0, 0) or Menus.IsOpen()) and 1 or 0
 	if hover ~= want then
 		local step = elapsed / FADE

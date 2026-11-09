@@ -134,6 +134,19 @@ overlay:SetAllPoints(view)
 overlay:SetFrameLevel(base + LEVEL_CONTROLS)
 Chrome.overlay = overlay
 
+-- Both span the map over everything on it, other addons' pins too (Questie's, ui/Sockets.lua's world socket): they take
+-- no mouse themselves, only their buttons and pills do. One taking it in the client hid the borrowed pins' tooltips
+-- under it (all but those near you, on the minimap socket's higher level); Chrome.Unblock keeps them see-through.
+local function Unblock(f)
+	if f:IsMouseEnabled() or f:IsMouseClickEnabled() or f:IsMouseMotionEnabled() then f:EnableMouse(false) end
+	if f:IsMouseWheelEnabled() then f:EnableMouseWheel(false) end
+end
+function Chrome.Unblock()
+	Unblock(controls)
+	Unblock(overlay)
+end
+Chrome.Unblock()
+
 -- Everything of the template but its border's art goes; the map stops where that art begins.
 local KEEP = { [view] = true, [band] = true, [grip] = true, [borders.metal] = true, [borders.tooltip] = true,
 	[controls] = true, [overlay] = true }
