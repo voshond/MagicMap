@@ -20,6 +20,8 @@ cd "$(dirname "$0")/.."
 # The map's quality scores against the committed baseline (docs/hardening-plan.md M5; ~1 s, ~2 s with
 # demo/tiles: its art checks are skipped without them, as in CI). Better: --write-baseline ratchets it.
 .venv/bin/python tools/maplint.py --no-install --no-art -q --baseline tools/maplint-baseline.json
+# wow-ui-testing into .wut/ once, here: the passes' workers each running scripts/fetch-wut.sh on a cold .wut race on .wut.new.
+bash scripts/fetch-wut.sh >/dev/null
 if [ "${1:-}" = --quick ]; then
 	shift
 	# -k picks a few tests: starting workers costs more than they save.
