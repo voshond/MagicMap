@@ -157,8 +157,23 @@ with a contact sheet, in `.proof/` (gitignored):
 .venv/bin/python tools/proof.py questlog   # those whose name holds the text
 ```
 
-It renders with wowproof from unit-frames' checkout (`WOWPROOF_DIR`, default
-`~/Documents/GitHub/unit-frames`): loaded from there, never copied here (it's PolyForm Noncommercial).
+It renders with wowproof from [wow-ui-testing](https://github.com/voshond/wow-ui-testing), our shared test
+library: `scripts/fetch-wut.sh` (a copy of the library's own) downloads the commit `.wut-version` pins into `.wut/`
+(gitignored, never in the release zip: it's PolyForm Noncommercial), and `tools/proof.py` runs it first, so a clean
+clone needs nothing else (the library is public; `GITHUB_TOKEN`/`GH_TOKEN` or a logged-in `gh`, when there, only
+spare GitHub's rate limit). To bump it, put the new commit's full SHA in `.wut-version` (the next run refetches). While working on the
+library itself, point `WUT_DIR` at its checkout instead:
+
+```sh
+bash scripts/fetch-wut.sh                                            # .wut/ at the pin (a no-op once there)
+WUT_DIR=~/Documents/GitHub/wow-ui-testing .venv/bin/python tools/proof.py
+```
+
+The same library holds the sim to the real client: `tools/tests/test_api_contract.py` checks every widget method
+`tools/tests/wowsim.lua` defines (per object type) and every global and `C_*` function it installs against wowmock's
+API snapshot for the Forever build. Today's gaps are in `tools/tests/api_allowlist.json`, each with its reason: a
+ratchet, so a new one fails and so does an entry that's no longer a gap.
+
 `tools/proof/wowsim.lua` is the adapter over the sim's widgets. The ground (the client's tiles) is left out and
 Blizzard's atlases are dashed boxes: the pictures prove layout, text and colour, as the tests can't (an anchor that
 stretches a row reads the same text). PNGs need `rsvg-convert`.

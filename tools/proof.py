@@ -1,14 +1,15 @@
 """Proof pictures of the map's chrome on the simulated client: each scenario drives the sim (tools/tests/wowsim.lua)
-to a state and renders its frames to SVG and PNG with wowproof (unit-frames' renderer: loaded from its checkout, never
-copied here, as it's PolyForm Noncommercial and MagicMap GPLv3), then a contact sheet of them all.
+to a state and renders its frames to SVG and PNG with wowproof (wow-ui-testing's renderer: fetched by
+scripts/fetch-wut.sh at the commit .wut-version pins into the gitignored .wut/, never committed or shipped here, as it's
+PolyForm Noncommercial and MagicMap GPLv3), then a contact sheet of them all.
 
     .venv/bin/python tools/proof.py                  # every scenario: .proof/<name>.svg, .png, .proof/index.html
     .venv/bin/python tools/proof.py questlog         # scenarios whose name holds the text
-    WOWPROOF_DIR=~/src/unit-frames .venv/bin/python tools/proof.py   # wowproof's checkout (default ~/Documents/GitHub/unit-frames)
+    WUT_DIR=~/src/wow-ui-testing .venv/bin/python tools/proof.py     # a local checkout of the library instead of .wut/
 
 The ground (the minimap tiles: the client's own art) and Blizzard's atlases aren't in a render's reach: the tiles are
 left out, an atlas is a dashed box named after it. What the pictures prove is the layout: what shows where, its
-text and its colours. PNGs need rsvg-convert. Exits 1 if a scenario failed or wowproof isn't there (2).
+text and its colours. PNGs need rsvg-convert. Exits 1 if a scenario failed or the library couldn't be fetched (2).
 """
 import os
 import sys
@@ -17,11 +18,11 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(TOOLS, "tests"))
 sys.path.insert(0, TOOLS)
 
+import wut  # noqa: E402
 from test_quests import CANDLES, FRONTIER, GOLD, LOVERS, client  # noqa: E402
 
 ROOT = os.path.dirname(TOOLS)
 OUT = os.path.join(ROOT, ".proof")
-WOWPROOF = os.path.expanduser(os.environ.get("WOWPROOF_DIR", "~/Documents/GitHub/unit-frames"))
 
 PROOF = """
 local Sim, ns, wowproofDir, adapterPath, outDir = ...
@@ -92,11 +93,12 @@ def scenarios(L, sim, ns):
 
 
 def main(filters):
-    if not os.path.exists(os.path.join(WOWPROOF, "wowproof", "init.lua")):
-        print(f"wowproof not found under {WOWPROOF} (set WOWPROOF_DIR to unit-frames' checkout)")
+    lib = wut.library("wowproof/init.lua")
+    if not lib:
+        print("wowproof not found: scripts/fetch-wut.sh couldn't fetch wow-ui-testing (or WUT_DIR has no wowproof/)")
         return 2
     L, sim, ns = setup()
-    proof = L.execute(PROOF, sim, ns, WOWPROOF, os.path.join(TOOLS, "proof", "wowsim.lua"), OUT)
+    proof = L.execute(PROOF, sim, ns, lib, os.path.join(TOOLS, "proof", "wowsim.lua"), OUT)
     failed = 0
     for name, go, region, options in scenarios(L, sim, ns):
         go()
