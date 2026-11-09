@@ -47,6 +47,18 @@ def test_world_pins():
     sim.Run(0.5)
     assert ns.Game.obs.quests[2].id == 62 and ns.Game.obs.quests[2].complete
     assert hosted(L, icons, canvas) == ["128", "continent", "notDone", "offer", "parent", "turnIn", "world", "zone"]
+    # Each within its parent's rect, and that within the socket's (the client takes no mouse for a pin far outside its
+    # parent: Questie's tooltips died past the minimap socket around you).
+
+    def inside(f, p):
+        fl, fb, fw, fh = sim.Rect(f)
+        pl, pb, pw, ph = sim.Rect(p)
+        return pl - 1e-6 <= fl and fl + fw <= pl + pw + 1e-6 and pb - 1e-6 <= fb and fb + fh <= pb + ph + 1e-6
+
+    for name in ("world", "zone", "turnIn"):
+        icon = icons[name]
+        holder = icon.GetParent(icon)
+        assert inside(icon, holder) and inside(holder, canvas), name
 
     ns.UI.Motion.SetZoom(40)  # a continent's
     sim.Step()

@@ -187,13 +187,13 @@ local function Place(icon, rec)
 	icon:SetPoint("CENTER", socket, "TOPLEFT", rec.col * zoom, -rec.row * zoom)
 end
 
--- A socket frame's holder: a 1x1 frame of ours at its TOPLEFT, the pins' parent.
+-- A socket frame's holder: a frame of ours over all of it (the pins sit within it: the client takes no mouse for one far
+-- outside its parent's rect), the pins' parent, placed from its TOPLEFT.
 local function Holder(frame)
 	local h = holders[frame]
 	if not h then
 		h = CreateFrame("Frame", nil, frame)
-		h:SetSize(1, 1)
-		h:SetPoint("TOPLEFT")
+		h:SetAllPoints()
 		holders[frame] = h
 	end
 	return h

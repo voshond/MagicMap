@@ -26,6 +26,9 @@ local GAME = { flight = "flight", quests = "quests", pois = "areaPOIs" } -- View
 -- Other addons' pins over everything on the map but the chrome: over our pins and arrow, and over Blizzard's blips
 -- (the overlay, game/Minimap.lua: the window's + 30, which takes the mouse for its tooltips) so theirs keep the mouse.
 local WORLD, MINI = 40, 42 -- the world socket's (its pins a level over it); the minimap socket's pins
+-- The world socket spans the whole map at its zoom (tiles 0 to GRID each way), not a point: the client takes no mouse for
+-- a pin far outside its parent's rect, so Questie's borrowed icons gave no tooltips past the minimap socket's around you.
+local GRID = 64
 
 local Sockets = {}
 UI.Sockets = Sockets
@@ -86,6 +89,7 @@ function Sockets.Update(v)
 		around:SetAlpha(alpha)
 	end
 	local nx, ny = w / 2 - cam.cx * cam.zoom, cam.cy * cam.zoom - h / 2
+	if moved or canvas:GetWidth() <= 1 then canvas:SetSize(GRID * world.zoom, GRID * world.zoom) end -- (once a zoom, as Game re-places them)
 	if at and (nx ~= x or ny ~= y) then
 		x, y = nx, ny
 		canvas:SetPoint("TOPLEFT", view, "TOPLEFT", nx, ny)
