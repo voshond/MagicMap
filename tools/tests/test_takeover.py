@@ -148,6 +148,72 @@ def test_override_world_map_off():
     assert shown() and ns.UI.View().window.shown and kinds(ns) == []
 
 
+def test_replace_quest_log():
+    """Replace quest log on: L, with our window shown, hides the log Blizzard just opened and hands "questlog"
+    on: UI grows the big map with its quest log out (brought back if put away), L again closes it. In combat L
+    is Blizzard's; so is our own call for the client's log (Game.ToggleQuestLog)."""
+    L, sim, ns = boot()
+    G, UI, big = L.globals(), ns.UI, ns.UI.BigMap
+    panel = UI.QuestLog.panel
+    shown = lambda: G.WorldMapFrame.IsShown(G.WorldMapFrame)  # noqa: E731
+    sim.Slash("/mm toggle")
+    sim.Run(1)
+    assert not UI.Replace.Get("questlog") and not UI.View().replace.questlog  # off until switched on
+    UI.Replace.Set("questlog", True)
+    UI.Feel.Set("questlog.sidebar", False)
+    sim.Run(1)
+    assert UI.saved.replace.questlog is True and UI.View().replace.questlog
+
+    sim.Press("L")
+    assert not shown()
+    sim.Step()
+    assert kinds(ns) == ["questlog"] and big.big and UI.Feel.Get("questlog.sidebar") is True
+    sim.Run(0.5)
+    assert panel.IsShown(panel)
+    UI.Feel.Set("questlog.sidebar", False)  # put away while big: L brings it back, the map stays
+    sim.Run(0.2)
+    sim.Press("L")
+    sim.Run(0.2)
+    assert big.big and panel.IsShown(panel) and not shown()
+    sim.Press("L")  # out: L closes the big map
+    sim.Run(0.5)
+    assert not big.big and not panel.IsShown(panel) and not shown()
+
+    ns.Game.ToggleQuestLog()  # the client's log asked for (Open in quest log): left open, nothing caught
+    sim.Step()
+    assert shown() and kinds(ns) == [] and not big.big
+    sim.Press("L")  # L closing Blizzard's: nothing caught
+    sim.Step()
+    assert not shown() and kinds(ns) == [] and not big.big
+
+    sim.inCombat = True  # hiding it is blocked: Blizzard's opens as usual
+    sim.Press("L")
+    sim.Step()
+    assert shown() and kinds(ns) == [] and not big.big
+    sim.Press("L")
+    sim.inCombat = False
+    assert len(sim.protectedCalls) == 0, [c.call for c in sim.protectedCalls.values()]
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_replace_quest_log_without_minimap():
+    """Replace quest log on, the minimap not replaced: L shows our window, big, its quest log out; L hides it."""
+    L, sim, ns = boot()
+    G, UI, big = L.globals(), ns.UI, ns.UI.BigMap
+    win, panel = UI.Window.frame, UI.QuestLog.panel
+    UI.Replace.Set("minimap", False)
+    UI.Replace.Set("questlog", True)
+    sim.Run(1)
+    assert not win.IsShown(win)
+    sim.Press("L")
+    sim.Run(0.5)
+    assert win.IsShown(win) and big.big and panel.IsShown(panel) and not G.WorldMapFrame.IsShown(G.WorldMapFrame)
+    sim.Press("L")
+    sim.Run(0.5)
+    assert not win.IsShown(win) and not G.WorldMapFrame.IsShown(G.WorldMapFrame)
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
 def test_button_home_release():
     """The button's art, drag and angle (across a /reload), toggle; home; a release puts all back."""
     L, sim, ns = boot()

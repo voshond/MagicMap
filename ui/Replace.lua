@@ -1,13 +1,15 @@
--- What MagicMap replaces: two independent choices, saved as UI.saved.replace = { minimap, worldmap }
--- (types/saved.lua), nil until the user picks (the welcome, ui/Welcome.lua, or Settings):
+-- What MagicMap replaces: independent choices, saved as UI.saved.replace = { minimap, worldmap, questlog }
+-- (types/saved.lua), nil until the user picks (the welcome, ui/Welcome.lua: the first two, or Settings):
 --   minimap  our small map takes the Minimap's spot, shown from login. Off: Blizzard's minimap stays, and
 --            our window is never small: it opens big, and closing it hides it (ui/BigMap.lua Close).
 --   worldmap M opens our big map (Game hears it: game/Hooks.lua reads View.replace). Off: M is Blizzard's.
+--   questlog L opens our big map with its quest log (ui/QuestLog.lua Key), and closes it. Off, or never set: L is
+--            Blizzard's.
 -- Neither: nothing of Blizzard's is touched; the minimap button, the addon compartment and /mm open and close
 -- our big map as a window of its own. A fresh install is that until the welcome is answered. The Minimap
 -- is borrowed as the blips' overlay whenever our window is shown, whatever the mode (game/Minimap.lua).
 -- API: Replace.Get(key), Replace.Set(key, on) (live: shows or hides the window as the mode says; saves),
--- Replace.Chosen(); Replace.Load(saved, fresh) is View's, at load (migration). Both are switches in
+-- Replace.Chosen(); Replace.Load(saved, fresh) is View's, at load (migration). All are switches in
 -- Settings > General > Blizzard's maps (ui/Feel.lua; kept here, so a reset leaves them).
 
 local _, ns = ...
@@ -16,7 +18,7 @@ local UI = ns.UI
 local Replace = {}
 UI.Replace = Replace
 
-local KEYS = { minimap = true, worldmap = true }
+local KEYS = { minimap = true, worldmap = true, questlog = true }
 
 function Replace.Chosen() return UI.saved.replace ~= nil end
 
@@ -69,4 +71,7 @@ UI.Feel.Add("general", "Blizzard's maps", {
 	{ key = "replace.worldmap", kind = "toggle", label = "Replace world map", default = false, keep = true,
 		get = function() return Replace.Get("worldmap") end, set = Switch("worldmap"),
 		tip = "M opens our map in place of Blizzard's world map. Off: M opens Blizzard's world map as usual." },
+	{ key = "replace.questlog", kind = "toggle", label = "Replace quest log", default = false, keep = true,
+		get = function() return Replace.Get("questlog") end, set = Switch("questlog"),
+		tip = "L opens our big map with its quest log, and closes it. Off: L opens Blizzard's quest log as usual." },
 })

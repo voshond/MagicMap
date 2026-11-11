@@ -15,7 +15,8 @@
 -- its zone whole, and opens its details in the panel (ui/QuestDetails.lua), in the list's place. A right-click:
 -- Details, Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
 -- The wheel scrolls it. The chevron at the map's top right puts it away and brings it back, as Settings > Tracking >
--- Quest log > Quest log on the big map does.
+-- Quest log > Quest log on the big map does. With Replace quest log (ui/Replace.lua), L opens the big map with it
+-- out, and closes the big map again (Key).
 
 local _, ns = ...
 local UI, Model, Atlas, Runtime = ns.UI, ns.Model, ns.Atlas, ns.Runtime
@@ -156,6 +157,23 @@ function QuestLog.Open(id)
 	if not QuestLog.on then UI.Feel.Set("questlog.sidebar", true) end
 	if not big.big then big.Toggle() end
 	UI.QuestDetails.Open(id)
+end
+
+-- L, caught (hooked "questlog": game/Hooks.lua, with Replace quest log): the big map with this log out, as L
+-- opens Blizzard's; again, the big map closed. The log put away, L brings it back; a big window too narrow for
+-- it closes, as on M.
+function QuestLog.Key()
+	local big = UI.BigMap
+	if not frame:IsShown() then -- (the minimap not replaced: shown, it grows at once, ui/BigMap.lua)
+		if not QuestLog.on then UI.Feel.Set("questlog.sidebar", true) end
+		return frame:Show()
+	end
+	if not big.big then
+		if not QuestLog.on then UI.Feel.Set("questlog.sidebar", true) end
+		return big.Toggle()
+	end
+	if QuestLog.on or (not big.Tweening() and not Fits(frame:GetWidth())) then return big.Close() end
+	UI.Feel.Set("questlog.sidebar", true)
 end
 
 local function Watch(q) Command({ kind = "questwatch", quest = q.id, on = not q.watched }) end
