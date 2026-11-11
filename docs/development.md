@@ -149,7 +149,7 @@ CI (`.github/workflows/check.yml`) runs `tools/check.sh` on every push and PR.
 ## Proof pictures
 
 `tools/proof.py` drives the simulated client to a few states (the small map, the big map with its quest log, a map
-picked from the Maps dropdown, a folded header, the quest log off) and renders the window's frames to SVG and PNG,
+picked from the zone title's menu, a folded header, the quest log off) and renders the window's frames to SVG and PNG,
 with a contact sheet, in `.proof/` (gitignored):
 
 ```sh

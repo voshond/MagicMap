@@ -40,7 +40,7 @@ or Escape shrinks it. Move or resize the big map and it opens there next time, a
 map off in Settings). The title over the map says what you choose (Settings > Frame title), at rest and with
 the pointer on the map, in your order: the zone, subzone, coordinates (the pointer's on the big map), the
 tracked target and its distance, the local or server time, each time led by the minimap's own day or night picture in its gold ring (no AM or PM); by
-default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name, or the Maps dropdown at the big map's top left, to pick a
+default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name to pick a
 continent, another map or an instance; with several zones in view, hover one to light it and click
 to fly there. `/mm map` and `/mm zone` do the same by name.
 
