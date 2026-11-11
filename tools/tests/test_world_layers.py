@@ -4,7 +4,7 @@ M4.1 and M4.3 hand them over (types/model.lua, types/observation.lua), drawn as 
   test_places: Known("places") and Known("vignettes") as pins on the store, each kind its look (S48: its art,
     else a dot of its colour; 18, 20, 16, 18, 20) and tooltip line; on by default but the graveyards; each
     gear row's toggle hides its kind alone (F39, F44).
-  test_group: Known("group") as the Minimap's party blips (S52): PartyRaidBlipsV2's left half, 12 px, the class's
+  test_group: Known("group") as the Minimap's party blips (S52): Forever's WhiteCircle-RaidBlips, 12 px, the class's
     colour, dead grey; moved as Model's list changes; the member's tooltip, Game's, on hover; the toggle (F41).
   test_view: View small, big, indoors and hidden: chrome, the layers
     Game acts on and the sockets (the minimap one beside the world one).
@@ -180,7 +180,7 @@ def test_group():
     assert len(shown) == 2  # (one on another continent: not on the map shown)
     w, h = UI.Window.Size()
     for d, (col, row, color) in zip(shown, ((32.0, 49.8, [0.41, 0.8, 0.94]), (31.9, 49.7, [0.5, 0.5, 0.5]))):
-        assert S[d].texture == "Interface\\Minimap\\PartyRaidBlipsV2" and list(S[d].texCoord.values()) == [0, 0.5, 0, 1]
+        assert S[d].atlas == "WhiteCircle-RaidBlips"
         assert S[d].width == 12 and S[d].height == 12 and rgb(sim, d) == color
         x, y = ns.Atlas.Camera.TileToScreen(UI.Camera.cam, w, h, col, row)
         point = S[d].points[1]
@@ -191,6 +191,12 @@ def test_group():
     x, _ = ns.Atlas.Camera.TileToScreen(UI.Camera.cam, w, h, 32.02, 49.8)
     assert abs(S[shown[0]].points[1].x - x) < 1e-9 and rgb(sim, shown[1]) == [0.41, 0.8, 0.94]
     assert len(dots) == 2  # (a dot each on the map shown)
+    # No class known yet (a member still loading): white, no error.
+    L.execute("""Put("group", { Member("Player-1-00000002", "Ally", nil, 32.02, 49.8) })""")
+    sim.Step()
+    assert rgb(sim, shown[0]) == [1, 1, 1]
+    L.execute("""Put("group", { Member("Player-1-00000002", "Ally", "MAGE", 32.02, 49.8), Member("Player-1-00000003", "Fallen", "MAGE", 31.9, 49.7) })""")
+    sim.Step()
 
     # Hovered: the member's tooltip, Game's (its name in its class's colour, level and class: the tooltip Command).
     sim.group = L.table_from(["party1"])

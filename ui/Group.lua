@@ -1,6 +1,7 @@
 -- Party and raid members (Layers.lua:666-760): Known("group"), those on the map shown, as the Minimap's
--- own blips: PartyRaidBlipsV2's filled dot (its left half), 12 px, in their class's colour, dead or a
--- ghost grey. They walk: placed again whenever Model's list changes (Game reads them 20 times a second,
+-- own blips: Forever's WhiteCircle-RaidBlips (UnitPositionFrameTemplates.lua:111; PartyRaidBlipsV2 is an atlas
+-- sheet there: its left half a dot and a stray glyph), else that file's filled dot, 12 px, in their class's colour,
+-- dead or a ghost grey. They walk: placed again whenever Model's list changes (Game reads them 20 times a second,
 -- game/parts/Group.lua) or the view moves, only what changed set; none while the layer's off (the gear's
 -- "Party & raid"). Under the cursor (no pin there: ui/Pins.lua's go first), a member's tooltip, Game's
 -- (the tooltip Command's member: its name in its class's colour, level and class, dead: Layers.lua:677-688).
@@ -14,7 +15,8 @@ local Command = ns.Game.Command
 
 local LEVEL = 13 -- with your corpse and waypoint (ui/You.lua): over the places and rares (11), under the quests (15)
 local SIZE = 12 -- px (Layers.lua:666), at 100%
-local BLIP = "Interface\\Minimap\\PartyRaidBlipsV2" -- a filled dot, then a ring (Layers.lua:667)
+local BLIP = "WhiteCircle-RaidBlips" -- Forever's party and raid pins' (UnitPositionFrameTemplates.lua:111)
+local OLD_BLIP = "Interface\\Minimap\\PartyRaidBlipsV2" -- a filled dot, then a ring (Layers.lua:667): no atlas
 local DEAD = 0.5 -- grey (Layers.lua:739)
 local NONE = {}
 
@@ -23,7 +25,7 @@ UI.Group = Group
 
 local Types = UI.PinTypes
 Types.Add({ id = "member", family = "party", name = "Party member",
-	look = { size = SIZE, icon = { texture = BLIP, coords = { 0, 0.5, 0, 1 } } },
+	look = { size = SIZE, icon = { atlas = BLIP, alt = { texture = OLD_BLIP, coords = { 0, 0.5, 0, 1 } } } },
 	tip = "A party or raid member, in their class's colour (grey when dead)." })
 local size = SIZE -- px: a dot's, as its type's size makes it
 
@@ -41,8 +43,12 @@ local function Dot(i)
 	local t = dots[i]
 	if not t then
 		t = frame:CreateTexture(nil, "ARTWORK")
-		t:SetTexture(BLIP)
-		t:SetTexCoord(0, 0.5, 0, 1)
+		if C_Texture.GetAtlasInfo(BLIP) then
+			t:SetAtlas(BLIP)
+		else
+			t:SetTexture(OLD_BLIP)
+			t:SetTexCoord(0, 0.5, 0, 1)
+		end
 		t:SetSize(SIZE, SIZE)
 		t:SetSnapToPixelGrid(false)
 		t:SetTexelSnappingBias(0)
@@ -59,8 +65,8 @@ local function Color(t, e)
 	if dead then
 		t:SetVertexColor(DEAD, DEAD, DEAD, 1)
 	else
-		local c = RAID_CLASS_COLORS[e.class]
-		t:SetVertexColor(c.r, c.g, c.b, 1)
+		local c = e.class and RAID_CLASS_COLORS[e.class]
+		if c then t:SetVertexColor(c.r, c.g, c.b, 1) else t:SetVertexColor(1, 1, 1, 1) end
 	end
 end
 

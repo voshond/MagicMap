@@ -2040,6 +2040,7 @@ ATLASES["_UI-Frame-Metal-EdgeBottom"] = { 256, 200 }
 ATLASES["UI-QuestPoi-QuestNumber"], ATLASES["deathrecap-icon-tombstone"] = { 32, 32 }, { 15, 20 }
 ATLASES["poi-graveyard-neutral"] = { 12, 16 }
 ATLASES["Waypoint-MapPin-Tracked"] = { 30, 30 }
+ATLASES["WhiteCircle-RaidBlips"] = { 16, 16 } -- party and raid members (ui/Group.lua)
 -- the popup's buttons (ui/Popup.lua): their glyphs, the micro menu's quest log
 ATLASES["Navigation-Tracked-Arrow"], ATLASES["flightpath"] = { 22, 18 }, { 32, 32 }
 -- Forever's progress bar (the quest pill: ui/Controls.lua), as its c60 art's sizes
