@@ -167,7 +167,7 @@ where there's no zone's map: the press stays the map's and the button armed.
 
 **Pinging the minimap.** MagicMap's small map sits over Blizzard's Minimap, so a click on it would never ping. Now a
 click on the small map over you (a click nothing else took: not a drag, an icon or a quest's area) pings the Minimap
-at that spot, as Forever's own Minimap does on a click, only inside its radius. A ping (yours or a group member's)
+at that spot, as Forever's own Minimap does on a click, only inside its radius. A ping (yours, and a group member's where the client tells addons of pings: Forever's doesn't)
 shows on the map, big or small, for three seconds: rings spreading and fading from the spot, the pinger's name under
 it in their class colour. While Blizzard's own Minimap is seen over the small map, the client draws its ping.
 

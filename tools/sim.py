@@ -100,16 +100,19 @@ end
 """
 
 
-def load(saved=None, data=True, lua=False, reload=False):
+def load(saved=None, data=True, lua=False, reload=False, unknown=()):
     """A simulated client with MagicMap loaded and logged in: (Lua, Sim, ns), on the counted clock
     (Sim.Counted: what a budgeted call or job gets done is the same on every machine).
     saved: Lua source for the SavedVariables (MagicMap2DB = ...) found at load (default TEST_UI).
     data=False: without QuestieDB's data (QUESTIE), as CI's checkout and a no-data build.
     lua=True: our own Lua charged too (LUA_PRICE).
-    reload=True: entered as a /reload does (PLAYER_ENTERING_WORLD false, true), not a login."""
+    reload=True: entered as a /reload does (PLAYER_ENTERING_WORLD false, true), not a login.
+    unknown: events this client doesn't have (registering one raises, as the client does)."""
     L = lua51.LuaRuntime(encoding="latin-1", unpack_returned_tuples=True)
     sim = L.eval("function(path) return assert(loadfile(path))() end")(os.path.join(TESTS, "wowsim.lua"))
     sim.Counted()
+    for event in unknown:
+        sim.unknownEvents[event] = True
     if lua:
         L.execute(LUA_PRICE, sim, "@" + luacheck.ROOT, LUA_NS, LUA_EVERY)
     ns = L.table()

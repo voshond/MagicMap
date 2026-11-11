@@ -14,7 +14,7 @@ which it takes over with the mouse off, so a click never pings by itself.
 """
 import math
 
-from test_addon import errors
+from test_addon import boot, errors
 from test_quests import FRONTIER, client
 
 TILE_YARDS = 1600 / 3
@@ -184,6 +184,27 @@ def test_ping_draw():
     sim.FireEvent("MINIMAP_PING", "party1", 5, 5)
     sim.Run(0.3)
     assert L.eval("function(a, b) return rawequal(a, b) end")(ns.Model.ping, before)
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_ping_without_the_event():
+    """A client without MINIMAP_PING (Forever's): nothing is registered (no error at load), and your own ping, as
+    sent, is the one read and drawn."""
+    L, sim, ns = boot(unknown=["MINIMAP_PING"])
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+    sim.Slash("/mm toggle")
+    sim.Run(1.5)
+    stub_radius(L)
+    w, _ = minimap(L)
+    per_yard = (w / 2) / RADIUS
+    col, row = yards(sim, east=10)
+    ns.Game.Command(L.table(kind="ping", pos=L.table(inst=sim.player.inst, col=col, row=row)))
+    sim.Run(0.5)
+    assert len(pings(sim)) == 1 and abs(pings(sim)[0][0] - 10 * per_yard) < 1e-6
+    ping = ns.Model.ping
+    assert ping and ping.name == sim.units.player.name
+    assert abs(ping.pos.col - col) < 1e-6 and abs(ping.pos.row - row) < 1e-6
+    assert ns.UI.Ping.frame.IsShown(ns.UI.Ping.frame)
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 

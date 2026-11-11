@@ -3,6 +3,8 @@
 -- event gives the spot in the Minimap's own units from its centre, up the way it faces (rotated, when it rotates):
 -- Game.PingScale is how many of them make a yard, and the turn; the same for what we send and what we read. Read
 -- against where you are as the frame has it (where you stood a moment ago is near enough for a ping's three seconds).
+-- A client without the event (Forever's has none: registering it raises) tells us nothing of a ping: ours alone is
+-- read, as we send it (Game.Pinged).
 
 local _, ns = ...
 local Atlas, Game, Runtime = ns.Atlas, ns.Game, ns.Runtime
@@ -23,10 +25,18 @@ function Game.PingScale()
 end
 
 local pending -- the last event's: { unit, x, y }, read next observe
-Runtime.On("MINIMAP_PING", "game.ping", function(_, unit, x, y)
-	if issecretvalue(x) or issecretvalue(y) then return end
-	pending = { unit = unit, x = x, y = y }
-end)
+local heard = C_EventUtils and C_EventUtils.IsEventValid and C_EventUtils.IsEventValid("MINIMAP_PING") or false
+if heard then
+	Runtime.On("MINIMAP_PING", "game.ping", function(_, unit, x, y)
+		if issecretvalue(x) or issecretvalue(y) then return end
+		pending = { unit = unit, x = x, y = y }
+	end)
+end
+
+-- Our own ping, just sent at x, y (game/commands/ping.lua): where no event says so, it is the ping.
+function Game.Pinged(x, y)
+	if not heard then pending = { unit = "player", x = x, y = y } end
+end
 
 local ping -- the last handed over
 Game.Part("ping", function(obs)
