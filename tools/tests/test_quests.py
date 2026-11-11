@@ -194,10 +194,17 @@ def test_quest_follow():
     sim.FireScript(pill, "OnMouseUp", "RightButton")
     assert sim.menu is None and QT.IsOpen() and not sim.state[tip].shown
     assert [b.label for b in QT.buttons.values()] == ["Stop tracking", "Path to", "Open in quest log"]
-    sim.FireScript(QT.buttons[3], "OnClick", "LeftButton", False)  # Open in quest log: the client's (the sim's L opens the world map)
-    sim.Run(0.2)
-    assert G.WorldMapFrame.IsShown(G.WorldMapFrame)
-    G.ToggleQuestLog()
+    # Open in quest log: ours, the map grown and the quest's details in it, the sidebar back though put away; not the
+    # client's (the sim's L opens the world map).
+    Feel.Set("questlog.sidebar", False)
+    sim.FireScript(QT.buttons[3], "OnClick", "LeftButton", False)
+    sim.Run(1)
+    dq = ns.UI.QuestDetails
+    assert ns.UI.BigMap.big and Feel.Get("questlog.sidebar") and ns.UI.QuestLog.panel.IsShown(ns.UI.QuestLog.panel)
+    assert dq.frame.IsShown(dq.frame) and ns.Model.questdetails.id == 52
+    assert not G.WorldMapFrame.IsShown(G.WorldMapFrame)
+    ns.UI.BigMap.Close()
+    sim.Run(1)
     sim.FireScript(pill, "OnLeave", False)
     sim.FireScript(view, "OnEnter", False)
     click(31.8, 49.7, "Stop tracking", "RightButton")  # again (a right click, the same popup): none

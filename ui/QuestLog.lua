@@ -140,6 +140,20 @@ local function Fly(q)
 end
 QuestLog.Fly = Fly
 
+local Fits -- (below)
+
+-- Quest id's details in this log (a pin's Open in quest log: ui/Track.lua): the map grown, the log brought back
+-- if put away. A big window too narrow for it has the client's log instead.
+function QuestLog.Open(id)
+	local big = UI.BigMap
+	if big.big and not big.Tweening() and not Fits(frame:GetWidth()) then
+		return Command({ kind = "questlog", quest = id })
+	end
+	if not QuestLog.on then UI.Feel.Set("questlog.sidebar", true) end
+	if not big.big then big.Toggle() end
+	UI.QuestDetails.Open(id)
+end
+
 local function Watch(q) Command({ kind = "questwatch", quest = q.id, on = not q.watched }) end
 
 local Pick = Runtime.Wrap("map: quest log pick", function(fn) fn() end)
@@ -355,7 +369,7 @@ QuestLog.Layout = Layout
 ---------------------------------------------------------------------------
 
 -- px it takes off the map's right in a big window w wide: WIDTH, or 0 (off, or a window too narrow for it).
-local function Fits(w) return w - WIDTH >= MIN_MAP end
+function Fits(w) return w - WIDTH >= MIN_MAP end
 function QuestLog.Room(w)
 	return QuestLog.on and Fits(w) and WIDTH or 0
 end
