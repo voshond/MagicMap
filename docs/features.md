@@ -9,13 +9,17 @@ The full reference behind the [README](../README.md).
 (recommended), **minimap only**, **world map only**, or **neither**, opened from the button alone.
 Continue saves the choice and opens the map as it says; Escape saves nothing and asks again next
 time. Until you answer, nothing of Blizzard's is touched. The choice is two switches in Settings >
-General (Replace minimap, Replace world map), live, any time; `/mm welcome` shows the welcome again.
+General (Replace minimap, Replace world map), live, any time, beside a third the welcome doesn't ask
+(Replace quest log, off); `/mm welcome` shows the welcome again.
 Players who had 2.0 keep their setup (migrated to both, no welcome).
 
 - *Minimap replaced:* our small map sits on the minimap's spot from login.
 - *Minimap not replaced:* Blizzard's minimap stays, and our map is never small: it opens big, and
   closing it hides it. Blizzard's Minimap still draws its blips over our map while it's shown.
 - *World map replaced:* M opens our big map. Not replaced: M is Blizzard's world map, as always.
+- *Quest log replaced* (Settings > General > Replace quest log): L opens our big map with its quest log
+  out (bringing the log back if you'd put it away), and L again closes it. In combat, and while our map is
+  switched off, L is Blizzard's. Not replaced: L is Blizzard's quest log, as always.
 - *Neither:* nothing of Blizzard's is touched; the minimap button, the addon compartment and `/mm`
   open and close our big map as a window of its own.
 
@@ -36,8 +40,8 @@ button by the zone name, reset, + and − on the right.*
 
 **The big map (M).** M or the red button grows it into a big map, centred on you; M, the button
 or Escape shrinks it. Move or resize the big map and it opens there next time, as the small one does
-(`/mm reset` puts both back). The quest log (L) still opens Blizzard's map (so does M, with Replace world
-map off in Settings). The title over the map says what you choose (Settings > Frame title), at rest and with
+(`/mm reset` puts both back). The quest log (L) still opens Blizzard's map unless Replace quest log is on in Settings (so does M, with
+Replace world map off). The title over the map says what you choose (Settings > Frame title), at rest and with
 the pointer on the map, in your order: the zone, subzone, coordinates (the pointer's on the big map), the
 tracked target and its distance, the local or server time, each time led by the minimap's own day or night picture in its gold ring (no AM or PM); by
 default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name to pick a
@@ -163,7 +167,7 @@ where there's no zone's map: the press stays the map's and the button armed.
 
 **Pinging the minimap.** MagicMap's small map sits over Blizzard's Minimap, so a click on it would never ping. Now a
 click on the small map over you (a click nothing else took: not a drag, an icon or a quest's area) pings the Minimap
-at that spot, as Forever's own Minimap does on a click, only inside its radius. A ping (yours or a group member's)
+at that spot, as Forever's own Minimap does on a click, only inside its radius. A ping (yours, and a group member's where the client tells addons of pings: Forever's doesn't)
 shows on the map, big or small, for three seconds: rings spreading and fading from the spot, the pinger's name under
 it in their class colour. While Blizzard's own Minimap is seen over the small map, the client draws its ping.
 
@@ -210,7 +214,7 @@ only then; a row with more under it (Pins' families and types) has a plus that o
 
 | Page | Settings (default) |
 | --- | --- |
-| General | Blizzard's maps: Replace minimap, Replace world map (what the welcome chose), Minimap button (on). Map window: Buttons at rest (0%: the buttons show while you point at the map), Border (Metal: the client's frame, the default; Tooltip: Blizzard's chamfered tooltip edge, grey, over a dark backing, as unit-frames draws; switched live, the map, its buttons and the grip move to its edge), Reset window position. Movement: Follow you (on), Return to you (on: the small map glides back to you when left alone), Return after (6 s), Zoom per notch (+30%: where Blizzard's minimap has no zoom of its own) |
+| General | Blizzard's maps: Replace minimap, Replace world map (what the welcome chose), Replace quest log (off: L opens our big map with its quest log, and closes it), Minimap button (on). Map window: Buttons at rest (0%: the buttons show while you point at the map), Border (Metal: the client's frame, the default; Tooltip: Blizzard's chamfered tooltip edge, grey, over a dark backing, as unit-frames draws; switched live, the map, its buttons and the grip move to its edge), Reset window position. Movement: Follow you (on), Return to you (on: the small map glides back to you when left alone), Return after (6 s), Zoom per notch (+30%: where Blizzard's minimap has no zoom of its own) |
 | Map | Names: Label size (100%), Zone name opacity (95%), Subzone size (100%), Subzone opacity (55%). Ground: Ocean (on), Repair broken map art (on). Indoors: Indoor dimming (65%), Indoor auto-zoom (on). You: Your arrow (100%) |
 | Title | At rest (Zone, Local time), On hover (Zone, Subzone, Tracked target, Distance to target), each chosen and ordered from Zone, Subzone, Coordinates, Tracked target, Distance to target, Local time, Server time (each time led by the day or night picture). Format: Clock (as Blizzard's clock / 24-hour / 12-hour; shown while a time is chosen) |
 | Pins | Show pins (on), Pin size (120%), Pin opacity (100%). By type: each family (Quests, Rares & treasures, Party, Places, Addons, Other) shown or not, and opened (+) its Size (Pin size's; Party's 100%, its own) and Opacity (Pin opacity's); each pin type under its family, with its icon drawn as on the map: shown or not, and opened its Size, Opacity, Icon (Blizzard's other art for it, today's by default) and Group (whether it may stand in a group's pill). Each follows the level above until set; its undo hands it back |

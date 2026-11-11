@@ -39,7 +39,7 @@ local window = { shown = false, big = false, strata = "LOW", level = 0, homeAlph
 local camera = { cx = 0, cy = 0, zoom = 0, w = 0, h = 0 } -- the map's, each frame (telemetry's motion ring, shot stamps)
 local here = { x = 0, y = 0, zoom = 0, w = 0 } -- View.here: you on the view (the overlay spike), or false
 local view = { v = 1, frame = 0, minimap = "ours", inst = 0, window = window,
-	layers = {}, sockets = {}, button = true, replace = { minimap = false, worldmap = false }, camera = camera }
+	layers = {}, sockets = {}, button = true, replace = { minimap = false, worldmap = false, questlog = false }, camera = camera }
 local focus = { inst = 0, shown = false, follow = true }
 -- The layers Model reads (Focus.off): turned off, its target skips that one (or a quest's area), a seen rare
 -- shows under a live vignette (vignettes).
@@ -131,11 +131,11 @@ Runtime.Step("ui", "ui: view", function()
 		place = nil
 	end
 	local strata, level = frame:GetFrameStrata(), frame:GetFrameLevel()
-	local rmin, rworld = UI.Replace.Get("minimap"), UI.Replace.Get("worldmap")
+	local rmin, rworld, rlog = UI.Replace.Get("minimap"), UI.Replace.Get("worldmap"), UI.Replace.Get("questlog")
 	local mode = rmin and saved.minimap or "ours" -- (the Minimap is ours whenever the window is shown, but Blizzard's quick hide while minimap mode is on)
 	local replace = view.replace
 	if shown ~= window.shown or place ~= window.place or mode ~= view.minimap
-		or rmin ~= replace.minimap or rworld ~= replace.worldmap
+		or rmin ~= replace.minimap or rworld ~= replace.worldmap or rlog ~= replace.questlog
 		or (Camera.inst or 0) ~= view.inst or BigMap.big ~= window.big
 		or BigMap.homeAlpha ~= window.homeAlpha or strata ~= window.strata or level ~= window.level
 		or saved.button ~= view.button then
@@ -147,7 +147,7 @@ Runtime.Step("ui", "ui: view", function()
 	view.trackedOnly = (UI.TrackedOnly())
 	view.pathing = UI.Path and UI.Path.drawing or false -- (the line laid out this frame or the last)
 	view.keep = UI.Resources.Keep() -- (the tracker Game keeps on: ui/Resources.lua, game/Keep.lua)
-	replace.minimap, replace.worldmap = rmin, rworld -- (Game: M is ours only while worldmap; ui/Replace.lua)
+	replace.minimap, replace.worldmap, replace.questlog = rmin, rworld, rlog -- (Game: M is ours only while worldmap, L while questlog; ui/Replace.lua)
 	if UI.Sockets.Update(view) then view.frame = Runtime.frames end -- (the world socket, an addon's layer)
 	local cam = Camera.cam
 	if settle then

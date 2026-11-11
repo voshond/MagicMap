@@ -19,4 +19,5 @@ Game.Handle("ping", function(c)
 	local reach = Minimap:GetWidth() / 2
 	if x * x + y * y >= reach * reach then return end
 	Minimap:PingLocation(x, y)
+	Game.Pinged(x, y)
 end)

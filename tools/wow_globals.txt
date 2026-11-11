@@ -41,7 +41,7 @@ seterrorhandler hooksecurefunc issecretvalue
 C_AddOnProfiler C_AddOns C_AreaPoiInfo C_CVar C_DeathInfo C_EncounterJournal C_Item C_Map C_MapExplorationInfo
 C_CurrencyInfo C_Minimap C_QuestLine C_TooltipInfo C_QuestLog C_SuperTrack C_TaxiMap C_Timer
 LibQuestieDB
-C_VignetteInfo Enum
+C_VignetteInfo Enum C_EventUtils
 # Functions
 AddQuestWatch ChatFrame_OpenChat
 GetBuildInfo GetCVar GetInstanceInfo Screenshot GetGameTime C_DateAndTime issecurevariable

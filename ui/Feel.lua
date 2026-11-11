@@ -43,7 +43,7 @@
 --
 -- The pages (order; who declares their settings), each with one job:
 --   General (10), what MagicMap replaces, its window, how the map moves. Blizzard's maps: Replace minimap, Replace
---     world map (ui/Replace.lua), Minimap button (ui/View.lua); Map window: Buttons at rest (ui/Controls.lua), Reset
+--     world map, Replace quest log (ui/Replace.lua), Minimap button (ui/View.lua); Map window: Buttons at rest (ui/Controls.lua), Reset
 --     window position (ui/BigMap.lua); Movement: Follow you, Return to you, Return after, Zoom per notch (ui/Motion.lua).
 --   Map (20), what the map shows. Names: Label size, Zone name opacity, Subzone size, Subzone opacity
 --     (ui/Labels.lua); Ground: Ocean (ui/Sea.lua), Repair broken map art (ui/Repaint.lua); Indoors: Indoor dimming,
@@ -282,7 +282,7 @@ end))
 -- The window
 ---------------------------------------------------------------------------
 
-local SIDE_W, SIDE_ROW, TABS = 140, 28, 14 -- px: the sidebar's width, a page's row; the pages it has room for
+local SIDE_W, SIDE_ROW, TABS = 140, 28, 15 -- px: the sidebar's width, a page's row; the pages it has room for
 local PAD, HEADER, TITLE = 14, 26, 30 -- px: the frame's margin, its header bar, a page's title and divider
 local ROW, LINE, HEAD, GAP = 26, 20, 22, 6 -- px: a row, a list's line, a section's header, above a header
 local PAGE_X = PAD + SIDE_W + 10 -- the page's left edge

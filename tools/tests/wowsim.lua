@@ -1368,6 +1368,7 @@ function Sim.Press(key)
 end
 
 Sim.unknownEvents = {}
+C_EventUtils = { IsEventValid = function(event) return not Sim.unknownEvents[event] end }
 
 ---------------------------------------------------------------------------
 -- The standard frames

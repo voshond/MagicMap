@@ -16,5 +16,5 @@ Game.Handle("questlog", function(c)
 		if QuestLog_Update then QuestLog_Update() end
 		return
 	end
-	ToggleQuestLog()
+	Game.ToggleQuestLog() -- (past our own catch of L: game/Hooks.lua)
 end)

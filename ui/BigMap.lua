@@ -7,6 +7,8 @@
 --     home corner fades out (View.window.homeAlpha).
 --   * Small, it sits at the minimap's strata (its cluster's: obs.minimap.homeStrata), so
 --     other windows go over it.
+--   * L (hooked "questlog": Replace quest log, ui/Replace.lua) grows it with its quest log out, and closes it
+--     (ui/QuestLog.lua Key).
 --   * The rim button or the addon compartment (hooked "toggle") shows or hides it, as /mm toggle.
 --   * Without the minimap replaced (ui/Replace.lua) it is never small: shown, it grows at once (the keys
 --     step), and M, the button or Escape close it (Close: hide) instead of shrinking it.
@@ -224,12 +226,13 @@ Controls.Tip(Controls.mode, function()
 	return UI.Replace.Get("minimap") and "Minimap (M)" or "Close (M)"
 end)
 
--- M, Escape and the rim button, as Game caught them (Model hands them on the same frame); the
+-- M, L, Escape and the rim button, as Game caught them (Model hands them on the same frame); the
 -- Minimap's home spot and strata, once Game has read them. (A grow's press: the frame's budget, as above.)
 Runtime.Step("ui", "map: keys", function()
 	for _, h in ipairs(Model.hooked) do
 		if h.kind == "worldmap" then
 			if frame:IsShown() then BigMap.Toggle() else frame:Show() end -- (hidden: M with the minimap not replaced)
+		elseif h.kind == "questlog" then UI.QuestLog.Key()
 		elseif h.kind == "escape" then BigMap.Close()
 		elseif h.kind == "toggle" then Window.Toggle() end
 	end

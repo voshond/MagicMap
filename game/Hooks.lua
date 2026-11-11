@@ -5,6 +5,10 @@
 --     UI hears "worldmap" (it grows or shrinks the window). M closing Blizzard's map (opened by L,
 --     the quest log) is left alone; so is M in combat, where hiding it is blocked (spike-bugs K2):
 --     Blizzard's opens as usual.
+--   L (ToggleQuestLog) while View.replace.questlog, the window as for M: the log it just opened (the world map
+--     on a Retail-engine client, else the QuestLogFrame) is hidden again, and UI hears "questlog" (it opens the
+--     big map with its quest log, or closes it). L closing Blizzard's, L in combat and our own call
+--     (Game.ToggleQuestLog: game/commands/questlog.lua, the client's log asked for) are left alone.
 --   Escape while big: a catcher in UISpecialFrames is shown, and Escape closing it is "escape"
 --   (the settings window, ui/Feel.lua, is named there too).
 -- What's caught (game/Button.lua's "toggle" too) is handed over as obs.hooked, its own part:
@@ -16,10 +20,13 @@
 local ADDON, ns = ...
 local Game, Runtime = ns.Game, ns.Runtime
 
-local INPUT = { worldmap = { kind = "worldmap" }, escape = { kind = "escape" }, toggle = { kind = "toggle" } }
+local INPUT = { worldmap = { kind = "worldmap" }, questlog = { kind = "questlog" }, escape = { kind = "escape" },
+	toggle = { kind = "toggle" } }
 local caught, handed = {}, {}
 local shown, big = false, false -- the window, as the last apply read View
 local override = false -- M is ours to take (View.replace.worldmap, and the window shown or the minimap not ours); else Blizzard's opens as it always does
+local questlog = false -- L is ours to take (View.replace.questlog, the window as for M)
+local passing = false -- our own ToggleQuestLog: the client's log is what's asked for
 
 function Game.Hooked(kind) caught[#caught + 1] = INPUT[kind] end
 
@@ -32,6 +39,21 @@ hooksecurefunc("ToggleWorldMap", Runtime.Wrap("game: M", function()
 	if not override or not WorldMapFrame:IsShown() or InCombatLockdown() then return end
 	HideUIPanel(WorldMapFrame)
 	Game.Hooked("worldmap")
+end))
+
+function Game.ToggleQuestLog()
+	passing = true
+	ToggleQuestLog()
+	passing = false
+end
+
+hooksecurefunc("ToggleQuestLog", Runtime.Wrap("game: L", function()
+	if passing then passing = false; return end
+	if not questlog or InCombatLockdown() then return end
+	local log = WorldMapFrame:IsShown() and WorldMapFrame or QuestLogFrame and QuestLogFrame:IsShown() and QuestLogFrame
+	if not log then return end
+	HideUIPanel(log)
+	Game.Hooked("questlog")
 end))
 
 local catcher = CreateFrame("Frame", "MagicMapWorldMapEscape", UIParent) -- (UISpecialFrames takes names)
@@ -53,7 +75,9 @@ Game.Apply("hooks", function(view)
 	local w = view.window
 	shown, big = w.shown, w.big
 	local r = view.replace
-	override = r ~= nil and r.worldmap == true and (shown or r.minimap ~= true)
+	local ours = r ~= nil and (shown or r.minimap ~= true)
+	override = ours and r.worldmap == true
+	questlog = ours and r.questlog == true
 	if catcher:IsShown() ~= big then catcher:SetShown(big) end
 end)
 
