@@ -1005,8 +1005,14 @@ function CreateFrame(typ, name, parent, template)
 		f:SetSize(32, 32)
 	end
 	if template and template:find("ButtonFrameTemplate") then
-		-- Retail's has a NineSlice border; the others take the addon's fallback.
+		-- Forever's NineSlice border: its bottom corners where ButtonFrameTemplateNoPortrait puts them
+		-- (NineSliceLayouts.lua), which ui/Chrome.lua reads to place its own.
 		f.NineSlice = CreateFrame("Frame", nil, f)
+		f.NineSlice:SetAllPoints()
+		f.NineSlice.BottomLeftCorner = f.NineSlice:CreateTexture(nil, "OVERLAY")
+		f.NineSlice.BottomLeftCorner:SetPoint("BOTTOMLEFT", f.NineSlice, "BOTTOMLEFT", -8, -3)
+		f.NineSlice.BottomRightCorner = f.NineSlice:CreateTexture(nil, "OVERLAY")
+		f.NineSlice.BottomRightCorner:SetPoint("BOTTOMRIGHT", f.NineSlice, "BOTTOMRIGHT", 4, -3)
 		f.TitleText = f:CreateFontString(nil, "OVERLAY")
 		f.CloseButton = CreateFrame("Button", nil, f)
 		f.CloseButton:SetSize(24, 24)
@@ -2094,6 +2100,8 @@ end
 -- GetAtlasInfo and SetAtlas(name, true) alike.
 for _, name in ipairs({ "UI-Frame-Metal-CornerBottomLeft", "UI-Frame-Metal-CornerBottomRight" }) do ATLASES[name] = { 32, 32 } end
 ATLASES["_UI-Frame-Metal-EdgeBottom"] = { 256, 200 }
+ATLASES["!UI-Frame-Metal-EdgeLeft"] = { 200, 256 }
+ATLASES["!UI-Frame-Metal-EdgeRight"] = { 200, 256 }
 ATLASES["UI-QuestPoi-QuestNumber"], ATLASES["deathrecap-icon-tombstone"] = { 32, 32 }, { 15, 20 }
 ATLASES["poi-graveyard-neutral"] = { 12, 16 }
 ATLASES["Waypoint-MapPin-Tracked"] = { 30, 30 }
@@ -2115,8 +2123,6 @@ ATLASES["UI-HUD-Minimap-DayCycle"], ATLASES["UI-HUD-Minimap-NightCycle"] = { 36,
 ATLASES["UI-HUD-Minimap-Frame-Cycle"] = { 42, 42 } -- (Diel.lua's ring round them)
 ATLASES["ui-hud-minimap-calendar-button"] = { 23, 23 }
 ATLASES["levelup-dot-gold"] = { 21, 22 } -- the zoom reset's dot (Forever has no reset atlas)
-ATLASES["!UI-Frame-Metal-EdgeLeft"] = { 200, 256 }
-ATLASES["!UI-Frame-Metal-EdgeRight"] = { 200, 256 }
 -- ui/Art.lua's (Forever's ObjectIconsAtlas, as tools/export_icons.py cuts them for the demo)
 for _, name in ipairs({ "taxinode_alliance", "taxinode_horde", "taxinode_neutral", "vignettekill",
 	"questnormal", "questturnin", "dungeon", "raid" }) do
