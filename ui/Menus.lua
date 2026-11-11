@@ -361,7 +361,7 @@ function Menus.ShowMap(inst)
 	UI.Window.frame:Show()
 end
 
--- The picker's rows, into root: the title's menu and the big map's dropdown (ui/MapPicker.lua) alike.
+-- The picker's rows, into root: the zone title's menu.
 function Menus.PickerRows(root)
 	local g = Groups()
 	local function Radio(parent, m)

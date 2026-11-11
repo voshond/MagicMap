@@ -40,7 +40,7 @@ or Escape shrinks it. Move or resize the big map and it opens there next time, a
 map off in Settings). The title over the map says what you choose (Settings > Frame title), at rest and with
 the pointer on the map, in your order: the zone, subzone, coordinates (the pointer's on the big map), the
 tracked target and its distance, the local or server time, each time led by the minimap's own day or night picture in its gold ring (no AM or PM); by
-default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name, or the Maps dropdown at the big map's top left, to pick a
+default the zone and the local time, and on hover the zone, subzone, target and its distance. Click the zone name to pick a
 continent, another map or an instance; with several zones in view, hover one to light it and click
 to fly there. `/mm map` and `/mm zone` do the same by name.
 
@@ -131,7 +131,8 @@ your waypoint. **Click any icon** (left or right; your waypoint's own too): its 
 with a row of buttons, Track and Path to (each Stop tracking or Stop pathing while it's what that icon has; each
 names itself on hover). Either sets the game's waypoint at the icon, and the title and the quest pill go to it;
 what you track is never grouped into a pill and shows at any zoom. A quest icon's Track and Path to follow the
-quest, and a third button opens it in the quest log; your waypoint's own has Clear waypoint. The two are exclusive:
+quest, and a third button opens its details in the big map's quest log (growing the map, and bringing the log back if
+you put it away; Blizzard's when the window is too narrow for it); your waypoint's own has Clear waypoint. The two are exclusive:
 choosing one replaces the other. The popup stays till you pick, click off it or press Escape.
 **Track** shows the way with Blizzard's gold arrow alone, placed by the walk to the target (around cliffs, lava
 and water): it stands along that way a short distance from you (96 px by default), pointing along it, so a

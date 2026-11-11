@@ -154,8 +154,7 @@ def scenarios(L, sim, ns):
         sim.Run(0.2)
 
     def kalimdor():
-        drop = UI.MapPicker.drop
-        sim.FireScript(drop, "OnMouseDown", "LeftButton")
+        sim.FireScript(UI.Title.hit, "OnClick", "LeftButton", False)
         sim.Pick(next(e for e in sim.menu["items"].values() if e.text == "Kalimdor"))
         sim.Run(1)
 
@@ -177,7 +176,7 @@ def scenarios(L, sim, ns):
         ("quest details: Kobold Candles", details, panel, {"pad": 8}),
         ("big map: quest details, Map Pin armed", pin, f, {"pad": 30}),
         ("quest log: back from the details", lambda: (pin(), back()), panel, {"pad": 8}),
-        ("big map: Kalimdor from the Maps dropdown", kalimdor, f, {"pad": 30}),
+        ("big map: Kalimdor from the zone title's menu", kalimdor, f, {"pad": 30}),
         ("quest log: Elwynn folded", fold, panel, {"pad": 8}),
         ("big map, quest log off", off, f, {"pad": 30}),
     ]

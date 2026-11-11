@@ -10,7 +10,7 @@
 -- Track.Covers); the title names the icon (You.Target). Your waypoint's own pin (set by Ctrl-click, the map's
 -- menu, /way) is tracked as it stands while no quest is followed: its actions switch the mode, or stop it, and
 -- Clear waypoint. A quest pin's follow it, no waypoint (ui/Areas.lua's Follow): Track, Path to, and Open in quest
--- log (the questlog Command); the quest pill's too, which while it shows the followed quest is that quest's pin
+-- log (ours on the big map: UI.QuestLog.Open); the quest pill's too, which while it shows the followed quest is that quest's pin
 -- (ui/Controls.lua).
 -- The tracked icon is UI.saved.tracked = { key, name, inst, col, row } (types/saved.lua): its key, where it was;
 -- what's pathed is UI.saved.path = { quest } or { inst, col, row } (the waypoint's pos), with the framing's zoom
@@ -217,7 +217,7 @@ end
 
 local Pick = Runtime.Wrap("map: track pick", function(fn, e, path) fn(e, path) end)
 
-local OpenLog = function(e) Command({ kind = "questlog", quest = e.quest }) end
+local OpenLog = function(e) UI.QuestLog.Open(e.quest) end
 
 -- What you do to pin e: "track", "path" or nil. Your waypoint's own pin is tracked while no quest is followed.
 local function Mode(e)

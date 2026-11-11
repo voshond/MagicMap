@@ -78,7 +78,8 @@ return function(Sim, options)
 	end
 	function a.Level(r) return S[r].level or 0 end
 	function a.Layer(r) return S[r].layer, S[r].sublevel end
-	function a.ClipsChildren(r) return S[r].clips == true end
+	-- A ScrollFrame always cuts its scroll child to its rect in the client; others only with SetClipsChildren.
+	function a.ClipsChildren(r) return S[r].clips == true or S[r].type == "ScrollFrame" end
 
 	function a.Texture(r)
 		local st = S[r]
