@@ -1,5 +1,5 @@
 return {
-	build = "1.60.1.70862",
+	build = "1.60.1.70888",
 	atlases = {
 		["!UI-Frame-Metal-EdgeLeft"] = { file = 8069114, width = 95, height = 128, left = 0.001953125, right = 0.373046875, top = 0, bottom = 1, tilesH = false, tilesV = true },
 		["!UI-Frame-Metal-EdgeRight"] = { file = 8069114, width = 95, height = 128, left = 0.376953125, right = 0.748046875, top = 0, bottom = 1, tilesH = false, tilesV = true },
