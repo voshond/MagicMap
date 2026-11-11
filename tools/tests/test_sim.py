@@ -104,7 +104,8 @@ def test_fidelity():
     end""")()
     assert list(hits.values()) == [False, False, 60, False, 60], list(hits.values())
 
-    # L2: Forever's edge atlases at their reported 200 px, by GetAtlasInfo and SetAtlas(name, true).
+    # L2: Forever's edge atlases at their reported 95 px (100 for the bottom's height), by GetAtlasInfo and
+    # SetAtlas(name, true).
     edge = L.eval("""function()
         local t = UIParent:CreateTexture()
         t:SetAtlas("!UI-Frame-Metal-EdgeLeft", true)
@@ -113,8 +114,8 @@ def test_fidelity():
         plain:SetAtlas("!UI-Frame-Metal-EdgeRight")
         return t:GetWidth(), C_Texture.GetAtlasInfo("_UI-Frame-Metal-EdgeBottom").height, plain:GetWidth()
     end""")()
-    assert edge == (200, 200, 4)
-    assert sim.atlases["!UI-Frame-Metal-EdgeLeft"][1] == 200  # a scenario can mock or remove one
+    assert edge == (95, 100, 4)
+    assert sim.atlases["!UI-Frame-Metal-EdgeLeft"][1] == 95  # a scenario can mock or remove one
 
     # HereBeDragons-Pins-2.0: the shared copy (GatherMate's pin) and Questie's renamed one.
     questie = sim.LoadQuestie()

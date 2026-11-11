@@ -1005,14 +1005,14 @@ function CreateFrame(typ, name, parent, template)
 		f:SetSize(32, 32)
 	end
 	if template and template:find("ButtonFrameTemplate") then
-		-- Forever's NineSlice border: its bottom corners where ButtonFrameTemplateNoPortrait puts them
-		-- (NineSliceLayouts.lua), which ui/Chrome.lua reads to place its own.
+		-- Forever's NineSlice border: its bottom corners where the client puts them (read in game,
+		-- 1.60.1.70862: not NineSliceLayouts.lua's -8,-3 / 4,-3), which ui/Chrome.lua reads to place its own.
 		f.NineSlice = CreateFrame("Frame", nil, f)
 		f.NineSlice:SetAllPoints()
 		f.NineSlice.BottomLeftCorner = f.NineSlice:CreateTexture(nil, "OVERLAY")
-		f.NineSlice.BottomLeftCorner:SetPoint("BOTTOMLEFT", f.NineSlice, "BOTTOMLEFT", -8, -3)
+		f.NineSlice.BottomLeftCorner:SetPoint("BOTTOMLEFT", f.NineSlice, "BOTTOMLEFT", -8, -8)
 		f.NineSlice.BottomRightCorner = f.NineSlice:CreateTexture(nil, "OVERLAY")
-		f.NineSlice.BottomRightCorner:SetPoint("BOTTOMRIGHT", f.NineSlice, "BOTTOMRIGHT", 4, -3)
+		f.NineSlice.BottomRightCorner:SetPoint("BOTTOMRIGHT", f.NineSlice, "BOTTOMRIGHT", 2, -8)
 		f.TitleText = f:CreateFontString(nil, "OVERLAY")
 		f.CloseButton = CreateFrame("Button", nil, f)
 		f.CloseButton:SetSize(24, 24)
@@ -2095,13 +2095,13 @@ for _, name in ipairs({ "redbutton-expand", "redbutton-expand-pressed", "redbutt
 	"questlog-quest-glow-yellow", "common-button-list-plus", "common-button-list-minus", "common-icon-backarrow" }) do
 	ATLASES[name] = true
 end
--- The metal frame's pieces, sized as Forever reports them: the edges far
--- bigger than the metal you see (which once shrank the map: L2), by
--- GetAtlasInfo and SetAtlas(name, true) alike.
-for _, name in ipairs({ "UI-Frame-Metal-CornerBottomLeft", "UI-Frame-Metal-CornerBottomRight" }) do ATLASES[name] = { 32, 32 } end
-ATLASES["_UI-Frame-Metal-EdgeBottom"] = { 256, 200 }
-ATLASES["!UI-Frame-Metal-EdgeLeft"] = { 200, 256 }
-ATLASES["!UI-Frame-Metal-EdgeRight"] = { 200, 256 }
+-- The metal frame's pieces, sized as Forever reports them (GetAtlasInfo in game, 1.60.1.70862: their
+-- -c60-2x art at half its texels): the edges far bigger than the metal you see (which once shrank the
+-- map: L2), by GetAtlasInfo and SetAtlas(name, true) alike.
+for _, name in ipairs({ "UI-Frame-Metal-CornerBottomLeft", "UI-Frame-Metal-CornerBottomRight" }) do ATLASES[name] = { 95, 100 } end
+ATLASES["_UI-Frame-Metal-EdgeBottom"] = { 128, 100 }
+ATLASES["!UI-Frame-Metal-EdgeLeft"] = { 95, 128 }
+ATLASES["!UI-Frame-Metal-EdgeRight"] = { 95, 128 }
 ATLASES["UI-QuestPoi-QuestNumber"], ATLASES["deathrecap-icon-tombstone"] = { 32, 32 }, { 15, 20 }
 ATLASES["poi-graveyard-neutral"] = { 12, 16 }
 ATLASES["Waypoint-MapPin-Tracked"] = { 30, 30 }

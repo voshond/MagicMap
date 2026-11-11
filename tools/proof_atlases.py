@@ -38,6 +38,27 @@ def loose_names():
     return names
 
 
+def forever_members(catalog):
+    """The member Forever draws for an element, as its GetAtlasInfo reports it (in game, 1.60.1.70862: the metal frame's
+    pieces): a 1x member before a -2x, the -c60 art before the plain (its -2x as well: `-c60-2x`), and a -2x member at
+    half its texels (the !UI-Frame-Metal-EdgeLeft-c60-2x's 190x256 is 95x128). Swaps the catalog's pick; returns the
+    chosen -2x members by element id, whose sizes the table halves."""
+    doubled = {}
+
+    def preferred(members):
+        def rank(member):
+            name = member["CommittedName"].lower()
+            base = name[:-3] if name.endswith("-2x") else name
+            return (name.endswith("-2x"), not base.endswith("-c60"), int(member["ID"]))
+        member = min(members, key=rank)
+        if member["CommittedName"].lower().endswith("-2x"):
+            doubled[member["UiTextureAtlasElementID"]] = True
+        return member
+
+    catalog.preferred_member = preferred
+    return doubled
+
+
 def generate(cache):
     lib = wut.library("scripts/atlas_catalog.py")
     if not lib:
@@ -59,7 +80,12 @@ def generate(cache):
             literals.add(element["Name"].lower())
     variants = {name[:-4]: name for name in literals if name.endswith("-c60")}
     literals |= set(variants)
+    doubled = forever_members(catalog)
     atlases = catalog.compile_atlases(tables, (literals, pattern))
+    for element in tables["UiTextureAtlasElement"]:
+        info = atlases.get(element["Name"])
+        if info and doubled.get(element["ID"]):
+            info["width"], info["height"] = int(info["width"]) // 2, int(info["height"]) // 2
     for base, variant in variants.items():
         found = next((n for n in atlases if n.lower() == base), None)
         if found:

@@ -48,7 +48,7 @@ def test_chrome():
     assert tuple(saved.window[k] for k in ("left", "top", "w", "h")) == home and saved.zoom == UI.Camera.cam.zoom
     assert ns.Game.minimap.engaged  # (Game takes the Minimap under it)
 
-    # L2: the border's edges claim 200 px; the view stops 2..6 px in, the zoom buttons clear of the grip.
+    # L2: the border's edges claim 95 px; the view stops 2..6 px in, the zoom buttons clear of the grip.
     left, top, w, h = rect(f)
     vl, vt, vw, vh = rect(view)
     insets = (vl - left, top - vt, left + w - vl - vw, vt - vh - (top - h))
