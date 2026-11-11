@@ -174,9 +174,38 @@ The same library holds the sim to the real client: `tools/tests/test_api_contrac
 API snapshot for the Forever build. Today's gaps are in `tools/tests/api_allowlist.json`, each with its reason: a
 ratchet, so a new one fails and so does an entry that's no longer a gap.
 
-`tools/proof/wowsim.lua` is the adapter over the sim's widgets. The ground (the client's tiles) is left out and
-Blizzard's atlases are dashed boxes: the pictures prove layout, text and colour, as the tests can't (an anchor that
-stretches a row reads the same text). PNGs need `rsvg-convert`.
+`tools/proof/wowsim.lua` is the adapter over the sim's widgets (it reports each texture's `file`, a path or a
+FileDataID, and its `atlas`). The pictures prove layout, text and colour, as the tests can't (an anchor that stretches
+a row reads the same text), and they draw Blizzard's real art:
+
+- `Interface\...` paths come from [Gethe/wow-ui-textures](https://github.com/Gethe/wow-ui-textures) (the ref
+  `clientdata/forever.json` pins), FileDataIDs (the minimap tiles, the atlas sheets) from wago.tools' CASC at build
+  1.60.1.70862 (BLPs decoded by the library, PNGs by ImageMagick). Needs `curl`, `jq`, `luajit` and ImageMagick: the
+  library's decoder uses LuaJIT's ffi and shells out, which the sim's Lua 5.1 can't, so `tools/proof.py` resolves each
+  file in a `luajit` process. Without `luajit` the art stays dashed boxes.
+- Atlases go through `tools/proof/atlases.lua`, a committed subset of the client's atlas table: the names this addon
+  uses plus the ping atlases. A name the addon starts using (a new literal in `ui/`, `game/` or `atlas/` is found by
+  itself; one built dynamically or without a hyphen goes in `tools/proof/atlas_names.lua`) needs a regeneration:
+
+  ```sh
+  .venv/bin/python tools/proof.py --atlases     # downloads the pinned wago.tools exports; rewrites tools/proof/atlases.lua
+  ```
+
+- The ground (the minimap tiles) renders too. Everything downloads once into `.proof-art/` (gitignored: never commit
+  it; the first run with the ground is a few hundred files and takes minutes, later ones are cached).
+
+| Env | Effect |
+| --- | --- |
+| `MM_PROOF_GROUND=0` | leave the ground out: fast, and the layout alone |
+| `MM_PROOF_ART=DIR` | the art cache (default `.proof-art/`) |
+| `MM_PROOF_ART_FETCH=0` | offline: only what's cached (the rest stays dashed) |
+| `GH_TOKEN` / `GITHUB_TOKEN` | spares GitHub's rate limit for the texture mirror |
+
+Still dashed: the addon's own textures (the base and sea pictures) and `Interface\WorldMap\Gear_64` (not in the art
+mirror). The sim's atlas sizes (`Sim.atlases` in `tools/tests/wowsim.lua`, as Forever reports them) aren't the export's,
+so a piece sized by them (the metal frame's edges) is drawn at the sim's size with the real art.
+
+PNGs need `rsvg-convert`.
 
 ## How to add a setting
 

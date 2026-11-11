@@ -56,7 +56,20 @@ return function(Sim, options)
 	end
 
 	function a.Scale(r) return S[r].scale or 1 end
-	function a.Shown(r) return S[r].shown ~= false end
+	-- A button's own textures as the client shows them, the mouse elsewhere: the highlight only while locked, the
+	-- pushed and disabled ones never (the sim keeps the disabled one under the key its disabled flag uses). The
+	-- sim keeps them all shown (tools/tests/wowsim.lua's buttonTexture).
+	local function ButtonShows(r, b)
+		if b.highlight == r then return b.lit == true end
+		if b.pushed == r or b.disabled == r then return false end
+		return true
+	end
+	function a.Shown(r)
+		local st = S[r]
+		if st.shown == false then return false end
+		local b = st.parent and S[st.parent]
+		return not b or ButtonShows(r, b)
+	end
 	function a.Alpha(r) return S[r].alpha or 1 end
 	function a.IgnoresParentAlpha(r) return S[r].ignoreParentAlpha == true end
 	function a.Strata(r)
@@ -72,14 +85,21 @@ return function(Sim, options)
 		local g = st.gradient
 		local file = st.texture
 		if file ~= nil then file = tostring(file) end
+		local atlas, coords = st.atlas, st.texCoord and { unpack(st.texCoord) } or nil
+		local pseudo = file and file:match("^atlas/(.+)$")
+		if pseudo and not atlas then
+			atlas, file = pseudo, nil
+			local whole = coords and coords[1] == 0 and coords[2] == 1 and coords[3] == 0 and coords[4] == 1
+			if whole then coords = nil end
+		end
 		return {
 			color = Plain(st.color),
 			vertexColor = Plain(st.vertex),
 			file = file,
-			atlas = st.atlas,
+			atlas = atlas,
 			gradient = g and { orientation = g[1], from = Plain(g[2]), to = Plain(g[3]) } or nil,
 			blend = st.blend,
-			texCoords = st.texCoord and { unpack(st.texCoord) } or nil,
+			texCoords = coords,
 		}
 	end
 
