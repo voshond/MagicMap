@@ -7,7 +7,9 @@
 --   * a header a zone, its quests under it; a click folds or unfolds it (UI.saved.questCollapsed: by its name)
 --   * a quest: its level and name in its difficulty's colour (the pins'), its icon (in progress, or ready to turn in),
 --     the glow on the one you follow, a box ticked while it's in Blizzard's tracker (a click: the questwatch
---     Command), and under it what it still needs (done: the log's completion line)
+--     Command), under it what it still needs (done: the log's completion line), and under that its rewards in a
+--     line: small icons of what you choose from and what you get (hovered: the item's tooltip, the tooltip Command,
+--     as the details'), the experience and the money
 -- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin.
 -- A click follows it (the follow Command: Blizzard's super-tracked quest) and flies the map there: to its pin, else
 -- its zone whole, and opens its details in the panel (ui/QuestDetails.lua), in the list's place. A right-click:
@@ -30,8 +32,10 @@ local TEXT_X = 26 -- a quest's name, past its icon
 local LINE_X = 34 -- its objectives', past the dash
 local CHECK = 14
 local ICON = 16
+local REWARD, REWARD_GAP, REWARD_H = 16, 3, 20 -- a reward's icon, between them, its line
 local WHEEL = 3 * TITLE_H -- px a notch
 local GOLD, WHITE, RED = { 1, 0.82, 0 }, { 1, 1, 1 }, { 1, 0.13, 0.13 }
+local XP_COLOR = { 0.6, 0.6, 1 }
 local LINE_GREY = 0.8
 -- Blizzard's own art (QuestMapFrame.xml, ListTemplates.lua), each drawn only where the client has it.
 local BACKGROUND, DIVIDER = "QuestLog-main-background", "QuestLog-frame-devider"
@@ -218,6 +222,9 @@ function QuestLog.SetListShown(on)
 	if not on then
 		for _, row in ipairs(rows) do
 			if row.hl:IsShown() then Left(row) end
+			for _, b in ipairs(row.rewards) do
+				if GameTooltip:IsOwned(b) then Command({ kind = "tooltip", owner = false }) end
+			end
 		end
 	end
 	title:SetShown(on)
@@ -253,6 +260,14 @@ local function NewRow()
 	end))
 	row.check = check
 	row.lines = {}
+	row.rewards = {}
+	row.xp = row:CreateFontString(nil, "ARTWORK")
+	row.xp:SetFontObject(GameFontHighlightSmall)
+	row.xp:SetJustifyH("LEFT")
+	row.xp:SetTextColor(XP_COLOR[1], XP_COLOR[2], XP_COLOR[3])
+	row.money = row:CreateFontString(nil, "ARTWORK")
+	row.money:SetFontObject(GameFontHighlightSmall)
+	row.money:SetJustifyH("LEFT")
 	row:SetScript("OnClick", Runtime.Wrap("map: quest log click", Clicked, Runtime.FRAME_MS))
 	row:SetScript("OnEnter", Runtime.Wrap("map: quest log hover", Entered))
 	row:SetScript("OnLeave", Runtime.Wrap("map: quest log left", Left))
@@ -274,6 +289,73 @@ local function Line(row, k)
 	return fs
 end
 
+local function RewardEntered(self)
+	Command({ kind = "tooltip", owner = self, anchor = "ANCHOR_LEFT",
+		questItem = { kind = self.kind, index = self.index, quest = self.quest } })
+end
+local function RewardLeft() Command({ kind = "tooltip", owner = false }) end
+
+local function Reward(row, k)
+	local b = row.rewards[k]
+	if not b then
+		b = CreateFrame("Button", nil, row)
+		b:SetSize(REWARD, REWARD)
+		b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		b.icon = b:CreateTexture(nil, "ARTWORK")
+		b.icon:SetAllPoints()
+		b.count = b:CreateFontString(nil, "OVERLAY")
+		b.count:SetFontObject(GameFontHighlightSmall)
+		b.count:SetPoint("BOTTOMRIGHT", 2, -1)
+		b:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+		b:SetScript("OnEnter", Runtime.Wrap("map: quest log reward", RewardEntered))
+		b:SetScript("OnLeave", Runtime.Wrap("map: quest log reward left", RewardLeft))
+		b:SetScript("OnClick", Runtime.Wrap("map: quest log reward click", function(self, button)
+			Clicked(self:GetParent(), button)
+		end, Runtime.FRAME_MS))
+		row.rewards[k] = b
+	end
+	return b
+end
+
+-- fs showing str (false: hidden) at x on the line through mid; x past it.
+local function Fact(fs, str, x, mid)
+	fs:SetShown(str and true or false)
+	if not str then return x end
+	fs:ClearAllPoints()
+	fs:SetPoint("LEFT", fs:GetParent(), "TOPLEFT", x, mid)
+	fs:SetText(str)
+	return x + fs:GetStringWidth() + 8
+end
+
+-- Quest r's rewards in a line at y under its name: the choices' and items' icons, its experience, its money; how
+-- many icons it used.
+local function Rewards(row, r, y)
+	local w, n = r.rewards, 0
+	local x = LINE_X
+	for _, list in ipairs({ { w.choices, "choice" }, { w.items, "reward" } }) do
+		for _, item in ipairs(list[1]) do
+			n = n + 1
+			local b = Reward(row, n)
+			b.kind, b.index, b.quest = list[2], item.index, r.id
+			b:ClearAllPoints()
+			b:SetPoint("TOPLEFT", x, -y)
+			b.icon:SetTexture(item.texture)
+			b.count:SetText(item.count > 1 and item.count or "")
+			b:Show()
+			x = x + REWARD + REWARD_GAP
+		end
+	end
+	local mid = -y - REWARD / 2
+	if n > 0 then x = x + REWARD_GAP end
+	x = Fact(row.xp, w.xp > 0 and (w.xp .. " XP"), x, mid)
+	Fact(row.money, w.money > 0 and w.coins, x, mid)
+	return n
+end
+
+local function HasRewards(w)
+	return w and (#w.choices > 0 or #w.items > 0 or w.money > 0 or w.xp > 0)
+end
+
 local function Header(row, r)
 	local folded = Collapsed()[r.title]
 	row:SetHeight(HEADER_H)
@@ -290,6 +372,9 @@ local function Header(row, r)
 	row.text:SetTextColor(WHITE[1], WHITE[2], WHITE[3])
 	row.check:Hide()
 	row.glow:Hide()
+	row.xp:Hide()
+	row.money:Hide()
+	for _, b in ipairs(row.rewards) do b:Hide() end
 	return HEADER_H
 end
 
@@ -319,6 +404,15 @@ local function Quest(row, r)
 		fs:SetTextColor(v, v, v)
 	end
 	local h = TITLE_H + #r.objectives * LINE_H + 4
+	local used = 0
+	if HasRewards(r.rewards) then
+		used = Rewards(row, r, h - 1)
+		h = h + REWARD_H
+	else
+		row.xp:Hide()
+		row.money:Hide()
+	end
+	for k = used + 1, #row.rewards do row.rewards[k]:Hide() end
 	row:SetHeight(h)
 	return h
 end

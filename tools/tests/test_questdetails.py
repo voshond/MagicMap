@@ -242,3 +242,35 @@ def test_questdetails_tooltip():
     sim.Run(0.2)
     assert not S[tip].shown
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_questlog_rewards_line():
+    """The list's rows show each quest's rewards in a line under its objectives: the choices' then the items' icons
+    (hovered: the item's tooltip, the selection put back), its experience and its money; a quest with none has no line."""
+    L, sim, ns, G = setup()
+    tip, S = G.GameTooltip, sim.state
+    candles, frontier = row(ns, "[7] Kobold Candles"), row(ns, "[11] Protect the Frontier")
+    icons = [b for b in seq(candles.rewards) if b.IsShown(b)]
+    assert [(b.kind, b.index) for b in icons] == [("choice", 1), ("choice", 2), ("reward", 1), ("reward", 2)]
+    assert [S[b.icon].texture for b in icons] == [135641, 135321, 133750, 133001]
+    assert icons[2].count.GetText(icons[2].count) == "5" and icons[0].count.GetText(icons[0].count) == ""
+    assert candles.xp.GetText(candles.xp) == "450 XP" and candles.xp.IsShown(candles.xp)
+    assert candles.money.GetText(candles.money) == "1" + GOLD_ICON + " 25" + SILVER_ICON
+    assert abs(sim.state[candles].height - (18 + 14 + 4 + 20)) < 1e-6
+    assert all(abs(b.GetTop(b) - icons[0].GetTop(icons[0])) < 1e-6 for b in icons)  # (all in a line)
+    assert icons[0].GetTop(icons[0]) <= candles.GetTop(candles) - 18 - 14  # (under its objective)
+    assert not any(b.IsShown(b) for b in seq(frontier.rewards)) and not frontier.xp.IsShown(frontier.xp)
+    assert abs(sim.state[frontier].height - (18 + 14 + 4)) < 1e-6
+    selects = sim.selects
+    sim.FireScript(icons[3], "OnEnter", False)
+    sim.Step()
+    assert S[tip].shown and S[tip.GetLeftLine(tip, 1)].text == "Gold-Trimmed Cloak" and sim.selectedQuest == 52
+    assert sim.selects > selects
+    sim.FireScript(icons[3], "OnLeave", False)
+    sim.Step()
+    assert not S[tip].shown
+    # A click on an icon is the row's: its details.
+    sim.Click(icons[0])
+    sim.Run(0.3)
+    assert ns.UI.QuestDetails.frame.IsShown(ns.UI.QuestDetails.frame)
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))

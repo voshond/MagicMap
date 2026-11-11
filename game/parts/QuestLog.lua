@@ -3,7 +3,7 @@
 -- QuestLogQuests_Update): its headers (the zones), and under each its quests, but those it hides (tasks, hidden,
 -- bounties not done: QuestLogQuests_ShouldShowQuestButton), each with its level, whether it's trivial, done or
 -- failed, watched (Blizzard's tracker) and followed (super-tracked), its zone's map (GetQuestUiMapID) and its
--- objectives' lines (done: the log's completion text, else QUEST_WATCH_QUEST_READY); with how many quests are in
+-- objectives' lines (done: the log's completion text, else QUEST_WATCH_QUEST_READY) and its rewards (as its details'); with how many quests are in
 -- the log and how many it holds (QuestLogQuests_ShowQuestCount, Camelot's). Read only while the big map is up
 -- (Game.bigShown: the sidebar's), again 1 s after a burst of the log's events, on the next frame once it's up or
 -- after a watch changed (our track Command, QUEST_WATCH_LIST_CHANGED) or the super-tracked quest did. Each row is compared with its last as it's read and kept
@@ -52,6 +52,13 @@ local function Lines(id, index, complete, was)
 	return was
 end
 
+-- Its rewards (Game.QuestRewards, game/parts/QuestDetails.lua: the quest selected for the read); was if the same.
+local function Rewards(id, was)
+	local out = Game.WithSelectedQuest(id, Game.QuestRewards, id)
+	if was and Game.SameRead(out, was) then return was end
+	return out
+end
+
 local function Shown(info)
 	return not (info.isTask or info.isHidden or info.isBounty and not C_QuestLog.IsComplete(info.questID))
 end
@@ -62,7 +69,7 @@ local rows = {} -- quest ID or header title -> its row in list: kept while the s
 local function Keep(r, was)
 	if was and r.title == was.title and r.level == was.level and r.trivial == was.trivial and r.complete == was.complete
 		and r.failed == was.failed and r.watched == was.watched and r.followed == was.followed and r.map == was.map
-		and r.objectives == was.objectives then return was end
+		and r.objectives == was.objectives and r.rewards == was.rewards then return was end
 	return r
 end
 
@@ -88,7 +95,7 @@ local function Read(super)
 			local r = Keep({ id = id, title = info.title, level = info.level > 0 and info.level or nil,
 				trivial = C_QuestLog.IsQuestTrivial(id) == true, complete = complete, failed = C_QuestLog.IsFailed(id) == true,
 				watched = C_QuestLog.GetQuestWatchType(id) ~= nil, followed = id == super, map = map > 0 and map or nil,
-				objectives = Lines(id, i, complete, was and was.objectives) }, was)
+				objectives = Lines(id, i, complete, was and was.objectives), rewards = Rewards(id, was and was.rewards) }, was)
 			out[#out + 1] = r
 			kept[id] = r
 		end
