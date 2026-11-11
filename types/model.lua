@@ -121,6 +121,10 @@
 ---@field straight? boolean    no walk data here: you and the target only, drawn straight
 ---@field partial? boolean     no way all the way: it ends where the walk grid gets nearest, then straight on
 
+---Model.questdetails: obs.questdetails' fields with rev.
+---@class MM.ModelQuestDetails : MM.ObsQuestDetails
+---@field rev integer
+
 ---@class MM.ModelRead
 ---@field you MM.ModelYou
 ---@field hooked MM.HookedInput[]  this frame's hooked keys, handed on from obs.hooked unchanged (ADR 0003)
@@ -131,6 +135,7 @@
 ---@field build? string             the client's build, handed on from obs.build (ui/Repaint.lua: whether the repaints fit); nil until the first observe
 ---@field levels table<MM.UiMapID, integer[]> each map's level range, { lo, hi }, handed on from obs.levels (the
 ---                                inspector's level line); {} until known
+---@field ping? MM.ObsPing          obs.ping, the last handed (nil until a ping): ui/Ping.lua draws it for PING_SECS
 ---@field waypointSet? boolean     obs.waypointSet, the last handed: a user waypoint is set, wherever (the menu's Clear
 ---                                waypoint: Known("waypoint") has none where Atlas can't place it)
 ---@field explored? table<MM.AreaID, boolean>  obs.explored, the last handed (nil until known): the inspector's
@@ -142,6 +147,7 @@
 ---@field tracking MM.ObsTracking[]  obs.tracking, the last handed ({} until known): the gear's Tracking submenu
 ---@field buttons MM.ObsButton[]   obs.buttons, the last handed ({} until known): the gear's Minimap buttons submenu
 ---@field questlog? MM.ObsQuestLog obs.questlog's rows, each quest with its difficulty colour (color), and rev (one more each change): the big map's quest log (ui/QuestLog.lua); nil until first read
+---@field questdetails? MM.ModelQuestDetails|false obs.questdetails, the last handed, with rev (one more each change): the opened quest's details in the big map's quest log (ui/QuestDetails.lua); false: none or gone; nil until first read
 ---@field clock? MM.ObsClock       obs.clock, the last handed (nil until known): the title's time and day or night
 ---@field SAVED MM.SavedSpec       Model's saved part's spec (types/saved.lua MM.SavedModel)
 local Model = {}

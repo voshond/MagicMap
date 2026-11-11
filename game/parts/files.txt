@@ -4,8 +4,10 @@ game/parts/Interior.lua
 game/parts/Addons.lua
 game/parts/Quests.lua
 game/parts/QuestLog.lua
+game/parts/QuestDetails.lua
 game/parts/Offers.lua
 game/parts/Waypoint.lua
+game/parts/Ping.lua
 game/parts/Corpse.lua
 game/parts/Levels.lua
 game/parts/Build.lua

@@ -39,7 +39,7 @@ GetCursorPosition IsAltKeyDown IsControlKeyDown IsMouseButtonDown IsShiftKeyDown
 seterrorhandler hooksecurefunc issecretvalue
 # Namespaces
 C_AddOnProfiler C_AddOns C_AreaPoiInfo C_CVar C_DeathInfo C_EncounterJournal C_Item C_Map C_MapExplorationInfo
-C_Minimap C_QuestLine C_TooltipInfo C_QuestLog C_SuperTrack C_TaxiMap C_Timer
+C_CurrencyInfo C_Minimap C_QuestLine C_TooltipInfo C_QuestLog C_SuperTrack C_TaxiMap C_Timer
 LibQuestieDB
 C_VignetteInfo Enum
 # Functions
@@ -64,7 +64,9 @@ MinimapBackdrop AddonCompartmentFrame GameTimeFrame TimeManagerClockButton
 # Other addons (always checked for before use)
 FarmHud LibStub QuestieLoader
 # The quest log (game/parts/QuestLog.lua, game/commands/quest*.lua: Blizzard_UIPanels_Game's QuestMapFrame)
-Constants GetQuestLogCompletionText GetQuestUiMapID QuestLogPushQuest QuestMapQuestOptions_AbandonQuest
+Constants GetNumQuestLogChoices GetNumQuestLogRewards GetQuestLogChoiceInfo GetQuestLogQuestText
+GetQuestLogRewardInfo GetQuestLogRewardMoney GetQuestLogRewardXP IsInGroup ITEM_QUALITY_COLORS
+GetQuestLogCompletionText GetQuestUiMapID QuestLogPushQuest QuestMapQuestOptions_AbandonQuest
 QUEST_WATCH_QUEST_READY OBJECTIVES_WATCH_TOO_MANY UIErrorsFrame
 # /mm hover (game/AddonPins.lua): what has the mouse
 GetMouseFoci

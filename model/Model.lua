@@ -50,7 +50,7 @@ function Model.Observe(obs, oracles)
 	local o, you = obs.you, Model.you
 	Model.hooked, Model.minimap, Model.addons = obs.hooked or NONE, obs.minimap, obs.addons or Model.addons
 	Model.levels, Model.tracking, Model.build = obs.levels or Model.levels, obs.tracking or Model.tracking, obs.build or Model.build
-	Model.skills = obs.skills or Model.skills
+	Model.skills, Model.ping = obs.skills or Model.skills, obs.ping or Model.ping
 	Model.buttons, Model.clock = obs.buttons or Model.buttons, obs.clock or Model.clock
 	Model.explored, Model.exploredCells = obs.explored or Model.explored, obs.exploredCells or Model.exploredCells
 	if obs.interior ~= nil then Model.interior = obs.interior end

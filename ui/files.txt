@@ -32,9 +32,12 @@ ui/Quests.lua
 ui/ZoneInfo.lua
 ui/MapPicker.lua
 ui/QuestLog.lua
+ui/QuestDetails.lua
 ui/Sockets.lua
 ui/You.lua
 ui/Group.lua
+ui/Ping.lua
+ui/MapPin.lua
 ui/Path.lua
 ui/Guide.lua
 ui/View.lua

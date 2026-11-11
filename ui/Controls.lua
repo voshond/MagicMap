@@ -716,7 +716,7 @@ Runtime.Step("ui", "map: controls", function(elapsed)
 end, { shownOnly = Window.frame })
 
 ---------------------------------------------------------------------------
--- Tips: a button's name, a GameTooltip title alone right of it (ui/Tip.lua's Label), after a moment's hover; gone
+-- Tips: a button's name (and a line of help under it, if its fn gives one), a GameTooltip title right of it (ui/Tip.lua's Label), after a moment's hover; gone
 -- when you leave, click or open a menu
 ---------------------------------------------------------------------------
 
@@ -728,7 +728,8 @@ Runtime.Step("ui", "map: tip", function(elapsed)
 		wait:Hide()
 	elseif wait.t >= TIP_DELAY then
 		wait:Hide()
-		UI.Tip.Label(wait.owner, wait.fn())
+		local title, help = wait.fn()
+		UI.Tip.Label(wait.owner, title, nil, help)
 	end
 end, { shownOnly = wait })
 

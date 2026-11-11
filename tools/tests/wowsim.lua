@@ -642,7 +642,11 @@ end
 function Button:SetNormalTexture(t) buttonTexture(self, "normal", t) end
 local function buttonAtlas(self, key, atlas)
 	assert(C_Texture.GetAtlasInfo(atlas), "unknown atlas " .. tostring(atlas))
-	local t = S[self][key] or self:CreateTexture(nil, "ARTWORK")
+	local t = S[self][key]
+	if not t then -- (the client's fills its button, as a texture's)
+		t = self:CreateTexture(nil, "ARTWORK")
+		t:SetAllPoints()
+	end
 	t:SetAtlas(atlas)
 	S[self][key] = t
 end
@@ -655,12 +659,25 @@ function Button:SetDisabledTexture(t) buttonTexture(self, "disabled", t) end
 function Button:GetNormalTexture() return S[self].normal end
 function Button:GetPushedTexture() return S[self].pushed end
 function Button:GetHighlightTexture() return S[self].highlight end
-function Button:Enable() S[self].disabled = false end
-function Button:Disable() S[self].disabled = true end
-function Button:SetEnabled(on) S[self].disabled = not on end
+-- A UIPanelButtonTemplate's look follows (UIPanelButton_OnEnable/OnDisable: its slices' art, its text's colour).
+local function panelLook(self)
+	local st = S[self]
+	if not st.panel then return end
+	local art = st.disabled == true and "Interface\\Buttons\\UI-Panel-Button-Disabled" or "Interface\\Buttons\\UI-Panel-Button-Up"
+	for _, t in ipairs(st.panel) do t:SetTexture(art) end
+	local c = st.disabled == true and 0.5 or nil
+	if c then st.label:SetTextColor(c, c, c) else st.label:SetTextColor(1, 0.82, 0) end
+end
+function Button:Enable() S[self].disabled = false; panelLook(self) end
+function Button:Disable() S[self].disabled = true; panelLook(self) end
+function Button:SetEnabled(on) S[self].disabled = not on; panelLook(self) end
 function Button:IsEnabled() return not S[self].disabled end
 function Button:Click(button) Sim.FireScript(self, "OnClick", button or "LeftButton", false) end
-function Button:SetText(t) S[self].text = t end
+function Button:SetText(t)
+	S[self].text = t
+	if S[self].label then S[self].label:SetText(t) end
+end
+function Button:GetFontString() return S[self].label end
 function Button:SetNormalFontObject(f) S[self].normalFont = f end
 function Button:SetHighlightFontObject(f) S[self].highlightFont = f end
 function Button:LockHighlight() S[self].lit = true end
@@ -758,6 +775,15 @@ function Tooltip:AddDoubleLine(left, right, lr, lg, lb)
 	self:AddLine(left, lr, lg, lb)
 	tooltipLine(self, S[self].numLines, "Right"):SetText(right)
 end
+-- A reward of the selected quest ("reward" or "choice", its index): its name in its quality's colour.
+function Tooltip:SetQuestLogItem(kind, index)
+	local q = Sim.quests[Sim.selectedQuest]
+	local r = q and (kind == "choice" and q.choices or q.rewards or {})[index]
+	S[self].questItem = { kind = kind, index = index, quest = Sim.selectedQuest }
+	if not r then return end
+	local c = ITEM_QUALITY_COLORS[r.quality or 1]
+	self:AddLine(r.name, c.r, c.g, c.b)
+end
 function Tooltip:GetRightLine(i) return S[self].rights and S[self].rights[i] end
 function Tooltip:SetText(text, r, g, b, a, wrap) self:ClearLines(); self:AddLine(text) end
 function Tooltip:NumLines() return S[self].numLines or 0 end
@@ -787,6 +813,12 @@ function MinimapClass:SetZoom(z)
 end
 function MinimapClass:GetZoomLevels() return 6 end
 function MinimapClass:SetMaskTexture(t) Sim.minimapMask = t end
+-- A ping at (x, y) Minimap units from its centre, up positive (a click on Forever's own Minimap): recorded in Sim.pings.
+Sim.pings = {}
+function MinimapClass:PingLocation(x, y)
+	assert(type(x) == "number" and type(y) == "number", "PingLocation: numbers expected")
+	Sim.pings[#Sim.pings + 1] = { x = x, y = y }
+end
 -- The quest/dig-site/bonus-objective rings at its rim: size, 1 = at the rim.
 Sim.blobRings = { Quest = 1, Arch = 1, Task = 1 }
 for kind in pairs(Sim.blobRings) do
@@ -1279,7 +1311,8 @@ for i, path in ipairs({ "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up", "Inter
 	"Interface\\Icons\\INV_Misc_EngGizmos_01", "Interface\\Buttons\\UI-PlusButton-Up", "Interface\\Buttons\\UI-MinusButton-Up",
 	"Interface\\Buttons\\UI-PlusButton-Hilight", "Interface\\Minimap\\MinimapArrow",
 	"Interface\\Common\\UI-TooltipDivider-Transparent", "Interface\\Tooltips\\UI-Tooltip-Border",
-	"Interface\\Tooltips\\UI-Tooltip-Background" }) do
+	"Interface\\Tooltips\\UI-Tooltip-Background", "Interface\\Buttons\\UI-Panel-Button-Up",
+	"Interface\\Buttons\\UI-Panel-Button-Disabled" }) do
 	FILES[path:lower()] = 100000 + i
 end
 function GetFileIDFromPath(path) return FILES[(path:lower():gsub("/", "\\"))] end
@@ -1727,6 +1760,30 @@ function Sim.Pick(e)
 end
 
 -- BackdropTemplate (Blizzard_SharedXMLBase/Backdrop.lua): what it was given, to read back.
+-- Forever's UIPanelButtonNoTooltipTemplate (SecureUIPanelTemplates.xml): three slices of UI-Panel-Button-Up, its
+-- text centred in GameFontNormal.
+TEMPLATE_SETUP.UIPanelButtonTemplate = function(f)
+	f:SetSize(40, 22)
+	local left, right, middle = f:CreateTexture(nil, "BACKGROUND"), f:CreateTexture(nil, "BACKGROUND"), f:CreateTexture(nil, "BACKGROUND")
+	left:SetSize(12, 22)
+	left:SetPoint("TOPLEFT")
+	left:SetPoint("BOTTOMLEFT")
+	left:SetTexCoord(0, 0.09375, 0, 0.6875)
+	right:SetSize(12, 22)
+	right:SetPoint("TOPRIGHT")
+	right:SetPoint("BOTTOMRIGHT")
+	right:SetTexCoord(0.53125, 0.625, 0, 0.6875)
+	middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+	middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+	middle:SetTexCoord(0.09375, 0.53125, 0, 0.6875)
+	f.Left, f.Right, f.Middle = left, right, middle
+	local label = f:CreateFontString(nil, "OVERLAY")
+	label:SetFontObject(GameFontNormal)
+	label:SetPoint("CENTER")
+	f.Text = label
+	S[f].panel, S[f].label = { left, middle, right }, label
+	panelLook(f)
+end
 TEMPLATE_SETUP.BackdropTemplate = function(f)
 	f.SetBackdrop = function(self, b) S[self].backdrop = b end
 	f.GetBackdrop = function(self) return S[self].backdrop end
@@ -2029,7 +2086,7 @@ end
 for _, name in ipairs({ "redbutton-expand", "redbutton-expand-pressed", "redbutton-highlight", "redbutton-condense",
 	"redbutton-condense-pressed", "uitools-icon-close", "UI-RefreshButton", "Quest-In-Progress-Icon-yellow",
 	"QuestLog-main-background", "QuestLog-frame-devider", "questlog-icon-ticksquare", "questlog-icon-checkmark-yellow",
-	"questlog-quest-glow-yellow", "common-button-list-plus", "common-button-list-minus" }) do
+	"questlog-quest-glow-yellow", "common-button-list-plus", "common-button-list-minus", "common-icon-backarrow" }) do
 	ATLASES[name] = true
 end
 -- The metal frame's pieces, sized as Forever reports them: the edges far
@@ -2040,6 +2097,9 @@ ATLASES["_UI-Frame-Metal-EdgeBottom"] = { 256, 200 }
 ATLASES["UI-QuestPoi-QuestNumber"], ATLASES["deathrecap-icon-tombstone"] = { 32, 32 }, { 15, 20 }
 ATLASES["poi-graveyard-neutral"] = { 12, 16 }
 ATLASES["Waypoint-MapPin-Tracked"] = { 30, 30 }
+ATLASES["WhiteCircle-RaidBlips"] = { 16, 16 } -- party and raid members (ui/Group.lua)
+ATLASES["worldquest-tracker-ring"] = { 64, 64 } -- a ping's ring (ui/Ping.lua)
+ATLASES["Waypoint-MapPin-ButtonToggle"] = { 32, 32 } -- the Map Pin button (ui/MapPin.lua)
 -- the popup's buttons (ui/Popup.lua): their glyphs, the micro menu's quest log
 ATLASES["Navigation-Tracked-Arrow"], ATLASES["flightpath"] = { 22, 18 }, { 32, 32 }
 -- Forever's progress bar (the quest pill: ui/Controls.lua), as its c60 art's sizes
@@ -2209,6 +2269,38 @@ function QuestMapQuestOptions_AbandonQuest(questID) Sim.abandonAsked = questID e
 Constants = { QuestWatchConsts = { MAX_QUEST_WATCHES = 25 }, QuestLogConsts = { MAXIMUM_NUM_QUESTS_LOG_CAN_ACCEPT = 40 } }
 QUEST_WATCH_QUEST_READY = "Ready for turn-in"
 function GetQuestLogCompletionText(index) return nil end
+-- A quest's details (QuestInfo.lua): its entry's text, objectivesText, rewards = { { name, texture, count, quality,
+-- itemID } }, choices (the same), money (copper) and xp, read for the selected quest (C_QuestLog.SetSelectedQuest).
+Sim.selectedQuest = 0
+function C_QuestLog.GetSelectedQuest() return Sim.selectedQuest end
+function C_QuestLog.SetSelectedQuest(questID) Sim.selectedQuest = questID end
+local function Selected() return Sim.quests[Sim.selectedQuest] or {} end
+function GetQuestLogQuestText() local q = Selected(); return q.text or "", q.objectivesText or "" end
+local function RewardInfo(list, i)
+	local r = (list or {})[i]
+	if r then return r.name, r.texture, r.count or 1, r.quality or 1, true, r.itemID end
+end
+function GetNumQuestLogRewards() return #(Selected().rewards or {}) end
+function GetQuestLogRewardInfo(i) return RewardInfo(Selected().rewards, i) end
+function GetNumQuestLogChoices(questID) return #((Sim.quests[questID] or Selected()).choices or {}) end
+function GetQuestLogChoiceInfo(i) return RewardInfo(Selected().choices, i) end
+function GetQuestLogRewardMoney() return Selected().money or 0 end
+function GetQuestLogRewardXP() return Selected().xp or 0 end
+function IsInGroup() return #Sim.group > 0 end
+-- As the client's: its gold, silver and copper each with its icon, the empty ones left out.
+C_CurrencyInfo = C_CurrencyInfo or {}
+function C_CurrencyInfo.GetCoinTextureString(money)
+	local parts = { { math.floor(money / 10000), "Gold" }, { math.floor(money / 100) % 100, "Silver" }, { money % 100, "Copper" } }
+	local out = {}
+	for _, p in ipairs(parts) do
+		if p[1] > 0 then out[#out + 1] = p[1] .. "|TInterface\\MoneyFrame\\UI-" .. p[2] .. "Icon:0:0:2:0|t" end
+	end
+	return table.concat(out, " ")
+end
+ITEM_QUALITY_COLORS = {
+	[0] = { r = 0.62, g = 0.62, b = 0.62 }, [1] = { r = 1, g = 1, b = 1 }, [2] = { r = 0.12, g = 1, b = 0 },
+	[3] = { r = 0, g = 0.44, b = 0.87 }, [4] = { r = 0.64, g = 0.21, b = 0.93 }, [5] = { r = 1, g = 0.5, b = 0 },
+}
 OBJECTIVES_WATCH_TOO_MANY = "You are tracking too many quests."
 -- A quest taken or given up (handed in too) comes with QUEST_ACCEPTED or QUEST_REMOVED (questID: Forever's,
 -- Questie's EventHandler.lua:157-193) before its QUEST_LOG_UPDATE: a scenario changes Sim.quests and fires

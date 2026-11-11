@@ -5,8 +5,10 @@ game/commands/questlog.lua
 game/commands/questwatch.lua
 game/commands/questshare.lua
 game/commands/questabandon.lua
+game/commands/questdetails.lua
 game/commands/tooltip.lua
 game/commands/waypoint.lua
+game/commands/ping.lua
 game/commands/way.lua
 game/commands/tracking.lua
 game/commands/run.lua

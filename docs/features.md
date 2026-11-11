@@ -48,8 +48,13 @@ to fly there. `/mm map` and `/mm zone` do the same by name.
 map does beside its own: each zone a header (click to fold it; folded ones stay folded), each quest's level and name
 in its difficulty's colour with what it still needs under it (done: ready for turn-in), and the count of how many
 the log holds. The box puts a quest in Blizzard's tracker or takes it out; a click follows it and flies the map to
-its pin (else its zone whole, on its own continent); hovering lights its area and shows its tooltip; right-click to
-Track, Follow, Share, Abandon or open it in the quest log. The map narrows to leave room for it; a big window too
+its pin (else its zone whole, on its own continent) and opens its details in the panel; hovering lights its area and
+shows its tooltip; right-click to see Details, Track, Follow, Share, Abandon or open it in the quest log. The details, as
+Blizzard's quest log shows them, take the list's place: its title, Quest Objectives (done ones greyed and ticked),
+Description and Rewards (what you choose one of and what you receive, two to a row with their counts and quality
+colours, money, experience; hover one for the item's tooltip), with Abandon, Share and Track (Untrack) under them; the
+arrow at the top (Back) returns to the list where you left it, as does the quest leaving the log or putting the panel
+away. The map narrows to leave room for it; a big window too
 narrow for both has none. The chevron at the map's top right puts it away (>) and brings it back (<), as Settings >
 Tracking > Quest log does. With **Tracked quests only** (on, same place), a quest you untrack (its box) leaves the
 map: its icon, its area and Questie's icons for it; the quest you follow always shows.
@@ -148,6 +153,17 @@ it), Shift-click opens chat with a `/way` line, and right-click off an icon offe
 the gold reset arrow above the zoom buttons glides back to you. The mode button (Blizzard's red expand) turns to
 its condense on the big map. On the big map, right-click leads with what's there: zone, subzones, coordinates, level
 range against yours, distance, quests, explored or not, and the landmarks nearby.
+
+**The Map Pin button.** On the big map, left of the quest log's chevron, Forever's Map Pin toggle (hover for its tip):
+click it to arm it (it stays lit), then click the map to put the waypoint there, as Ctrl-click does, without the map
+panning; it disarms itself after the click. A right click, the map shrinking or the button again disarms it too. Not
+where there's no zone's map: the press stays the map's and the button armed.
+
+**Pinging the minimap.** MagicMap's small map sits over Blizzard's Minimap, so a click on it would never ping. Now a
+click on the small map over you (a click nothing else took: not a drag, an icon or a quest's area) pings the Minimap
+at that spot, as Forever's own Minimap does on a click, only inside its radius. A ping (yours or a group member's)
+shows on the map, big or small, for three seconds: rings spreading and fading from the spot, the pinger's name under
+it in their class colour. While Blizzard's own Minimap is seen over the small map, the client draws its ping.
 
 <!-- TODO(#12): refreshed screenshot (2.1.0: no zone borders, current tooltip) -->
 ![A followed quest at Camp Narache: the line to its turn-in and the quest pill saying it's ready](images/followed-quest-route.jpg)

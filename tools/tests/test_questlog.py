@@ -8,8 +8,9 @@ questabandon Commands) on the simulated client, as Forever's world map lists you
     leave it; a header and its quests in their difficulty's colour, their lines under them, the count; the box tracks
     and untracks; a header folds (kept in UI.saved) and unfolds; turned off in Settings, or a window too narrow, it's
     gone and the map whole again; hidden with the window.
-  test_questlog_clicks: a click follows the quest (Blizzard's super-tracked quest) and flies to its pin, else to its
-    zone whole on its own map; the right-click menu tracks, follows, shares and asks to abandon.
+  test_questlog_clicks: a click follows the quest (Blizzard's super-tracked quest), flies to its pin, else to its
+    zone whole on its own map, and opens its details (test_questdetails.py); the right-click menu opens the details,
+    tracks, follows, shares and asks to abandon.
 """
 from test_addon import errors
 from test_quests import CANDLES, FRONTIER, LOVERS, client
@@ -208,7 +209,7 @@ def test_questlog_clicks():
     # The right-click menu.
     sim.FireScript(row(ns, "[11] Protect the Frontier"), "OnClick", "RightButton", False)
     items = [(e.kind, e.text) for e in sim.menu["items"].values()]
-    assert items == [("title", "Protect the Frontier"), ("button", "Untrack"), ("button", "Follow"), ("button", "Share"),
+    assert items == [("title", "Protect the Frontier"), ("button", "Details"), ("button", "Untrack"), ("button", "Follow"), ("button", "Share"),
                      ("button", "Abandon"), ("divider", None), ("button", "Open in quest log")]
 
     def pick(text):
