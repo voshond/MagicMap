@@ -2,6 +2,7 @@ model/Model.lua
 model/Rares.lua
 model/Quests.lua
 model/QuestLog.lua
+model/QuestDetails.lua
 model/Offers.lua
 model/Places.lua
 model/Group.lua

@@ -158,15 +158,16 @@ function Tip.Describe(tooltip, title, body, extra)
 	if extra then tooltip:AddLine(extra, Tip.GREY, Tip.GREY, Tip.GREY, true) end
 end
 
--- A control's tip: its title alone, right of it (left where the screen's edge is near), or anchor.
+-- A control's tip: its title (and help, a grey line under it), right of it (left where the screen's edge is near), or anchor.
 local ROOM = 160 -- px past its right edge: room for a short tip
-function Tip.Label(owner, text, anchor)
+function Tip.Label(owner, text, anchor, help)
 	if not anchor then
 		local r, s = owner:GetRight(), owner:GetEffectiveScale()
 		anchor = r and r * s + ROOM > UIParent:GetRight() * UIParent:GetEffectiveScale() and "ANCHOR_LEFT" or "ANCHOR_RIGHT"
 	end
 	GameTooltip:SetOwner(owner, anchor)
 	GameTooltip:SetText(text, 1, 1, 1)
+	if help then GameTooltip:AddLine(help, Tip.GREY, Tip.GREY, Tip.GREY, true) end
 	GameTooltip:Show()
 end
 

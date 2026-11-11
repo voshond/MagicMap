@@ -10,7 +10,8 @@
 --     Command), and under it what it still needs (done: the log's completion line)
 -- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin.
 -- A click follows it (the follow Command: Blizzard's super-tracked quest) and flies the map there: to its pin, else
--- its zone whole. A right-click: Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
+-- its zone whole, and opens its details in the panel (ui/QuestDetails.lua), in the list's place. A right-click:
+-- Details, Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
 -- The wheel scrolls it. The chevron at the map's top right puts it away and brings it back, as Settings > Tracking >
 -- Quest log > Quest log on the big map does.
 
@@ -78,12 +79,14 @@ local count = panel:CreateFontString(nil, "OVERLAY")
 count:SetFontObject(GameFontNormalSmall)
 count:SetPoint("TOPRIGHT", -PAD, -10)
 QuestLog.title, QuestLog.count = title, count
+QuestLog.WIDTH, QuestLog.HEAD, QuestLog.PAD, QuestLog.Art, QuestLog.Has = WIDTH, HEAD, PAD, Art, Has
 local rule = Art(panel:CreateTexture(nil, "ARTWORK"), DIVIDER)
 rule:SetPoint("TOPLEFT", 4, -HEAD + 6)
 rule:SetPoint("TOPRIGHT", -4, -HEAD + 6)
 rule:SetHeight(8)
 
 local scroll = CreateFrame("ScrollFrame", nil, panel)
+QuestLog.rule = rule
 scroll:SetPoint("TOPLEFT", 0, -HEAD)
 scroll:SetPoint("BOTTOMRIGHT", 0, 4)
 scroll:EnableMouseWheel(true)
@@ -143,6 +146,7 @@ local Pick = Runtime.Wrap("map: quest log pick", function(fn) fn() end)
 local function Menu(owner, q)
 	Menus.Show(owner, function(_, root)
 		root:CreateTitle(q.title)
+		root:CreateButton("Details", function() Pick(function() UI.QuestDetails.Open(q.id) end) end)
 		root:CreateButton(q.watched and "Untrack" or "Track", function() Pick(function() Watch(q) end) end)
 		root:CreateButton(q.followed and "Stop following" or "Follow", function()
 			Pick(function() Command({ kind = "follow", quest = not q.followed and q.id }) end)
@@ -166,6 +170,7 @@ local function Clicked(row, button)
 	else
 		Command({ kind = "follow", quest = r.id })
 		Fly(r)
+		UI.QuestDetails.Open(r.id)
 	end
 end
 
@@ -193,6 +198,19 @@ end
 
 local rows = {}
 QuestLog.rows = rows
+
+-- The list (its title, count, rule and rows) shown, or put away while a quest's details take its place (its scroll kept).
+function QuestLog.SetListShown(on)
+	if not on then
+		for _, row in ipairs(rows) do
+			if row.hl:IsShown() then Left(row) end
+		end
+	end
+	title:SetShown(on)
+	count:SetShown(on)
+	rule:SetShown(on)
+	scroll:SetShown(on)
+end
 
 local function NewRow()
 	local row = CreateFrame("Button", nil, content)

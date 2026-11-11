@@ -4,6 +4,7 @@
 --     (big, or off your map: as the title names it) lights up, its name brighter; a click there flies to it
 --     (fit 0.92), following off. A click's
 --     turn (ui/Window.lua): a pin, then a quest's area while zone clicks aren't on offer, then the zone.
+--   Small map, your own: a click nothing else took pings the Minimap under it (the ping Command: Game's).
 --   Ctrl-click: a waypoint there; Ctrl-right-click: none; Shift-click: its /way line in the chat box
 --     (the waypoint and way Commands: Game's). Taken on the press, so the map doesn't pan; not off the
 --     zones' maps (Atlas.ZoneMapAt: where Game's waypoint can go).
@@ -141,6 +142,18 @@ end))
 
 local pressed -- the zone a left press would fly to (its uiMap; false: zone clicks weren't on offer)
 
+-- A Command of kind (waypoint, or way) at the cursor: true if sent (not off the zones' maps, where Game's waypoint
+-- and way go).
+local function AtCursor(kind)
+	local inst, col, row = Camera.inst, ZoneInfo.CursorTile()
+	if not Atlas.ZoneMapAt(inst, col, row) then return false end
+	Command({ kind = kind, pos = { inst = inst, col = col, row = row } })
+	return true
+end
+
+-- The waypoint at the cursor (Ctrl-click, and ui/MapPin.lua's armed press): true if put.
+function ZoneInfo.Waypoint() return AtCursor("waypoint") end
+
 -- Shift or Ctrl held: true if taken (the map doesn't pan).
 function ZoneInfo.Modified(button)
 	if IsControlKeyDown() and button == "RightButton" then
@@ -148,19 +161,19 @@ function ZoneInfo.Modified(button)
 		return true
 	end
 	if button ~= "LeftButton" then return false end
-	local inst, col, row = Camera.inst, ZoneInfo.CursorTile()
-	if not Atlas.ZoneMapAt(inst, col, row) then return false end -- (where Game's waypoint and way go)
-	local pos = { inst = inst, col = col, row = row }
-	Command({ kind = IsControlKeyDown() and "waypoint" or "way", pos = pos })
-	return true
+	return AtCursor(IsControlKeyDown() and "waypoint" or "way")
 end
 
 function ZoneInfo.Press() pressed = hover.map or false end
 
--- A click no pin took: a quest's area, while zone clicks aren't on offer; else the zone's, flown to.
+-- A click no pin took: a quest's area, while zone clicks aren't on offer, else on the small map over you a ping
+-- on the Minimap under it (the ping Command: Game's); else the zone's, flown to.
 function ZoneInfo.Tap()
 	if not pressed then
-		UI.Areas.Tap()
+		local you = Model.you
+		if UI.Areas.Tap() or UI.BigMap.big or not (you and you.inst == Camera.inst) then return end
+		local inst, col, row = Camera.inst, ZoneInfo.CursorTile()
+		Command({ kind = "ping", pos = { inst = inst, col = col, row = row } })
 		return
 	end
 	local r = Atlas.MapRect(pressed)

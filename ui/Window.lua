@@ -85,6 +85,8 @@ view:SetScript("OnMouseDown", Runtime.Wrap("map: press", function(_, button)
 		moving = true
 		return
 	end
+	-- Armed, the Map Pin button's press is the waypoint (ui/MapPin.lua), taken: no pan.
+	if UI.MapPin.Press(button) then return end
 	-- Ctrl-click a waypoint, Ctrl-right-click none, Shift-click a /way line: taken on the press, no pan.
 	if (IsShiftKeyDown() or IsControlKeyDown()) and UI.ZoneInfo.Modified(button) then return end
 	if button ~= "LeftButton" then return end

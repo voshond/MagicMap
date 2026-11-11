@@ -29,10 +29,12 @@
 ---@field hooked MM.HookedInput[]    per frame; usually empty (see types/view.lua)
 ---@field quests? MM.ObsQuests      on change: your quest log
 ---@field questlog? MM.ObsQuestLog  on change: your whole quest log, its headers and quests in order, read while the big map is up
+---@field questdetails? MM.ObsQuestDetails|false  on change: the details of the quest the big map's quest log opened; false: none asked for, or it left the log
 ---@field places? MM.ObsPlace[]      on change: live places the game marks (Atlas has the static ones)
 ---@field corpse? MM.Pos|false       on change: false = no corpse known
 ---@field waypoint? MM.Pos|false     on change: the user waypoint (C_Map); false = none Model can place: none, or on a map Atlas hasn't (ADR 0001's LOCKED clarification, M3)
 ---@field waypointSet? boolean        with waypoint: a user waypoint is set, wherever it is (C_Map.GetUserWaypoint() ~= nil)
+---@field ping? MM.ObsPing           on change: the latest MINIMAP_PING, yours or a group member's, nil until one (game/parts/Ping.lua)
 ---@field vignettes? MM.ObsVignette[] on change: what the game shows near you now
 ---@field offers? MM.ObsOffer[]      on change: quests to pick up on the maps Game asked about
 ---@field explored? table<MM.AreaID, boolean> on change: per area Game has checked; a missing key is unknown
@@ -52,6 +54,12 @@
 ---@field levels? table<MM.UiMapID, integer[]> on change: each map's level range as the client gives it,
 ---                                   { lo, hi } (C_Map.GetMapLevels), for the maps Atlas has; one it gives none is
 ---                                   missing. Read once.
+
+---@class MM.ObsPing
+---@field pos MM.Pos            where, against where you were when it came
+---@field name? string          the pinger (UnitName)
+---@field class? string         their class token (RAID_CLASS_COLORS' key)
+---@field t MM.Time             GetTime() when read
 
 ---@class MM.ObsYou
 ---@field inst? MM.Inst        the instance you're in (GetInstanceInfo: known in instances too)
@@ -234,6 +242,33 @@ function Oracles.Inside(quest, col, row) end
 ---@field quests integer           quests in the log
 ---@field max? integer             how many it holds (Constants.QuestLogConsts)
 ---@field [integer] MM.ObsQuestLogRow
+
+---obs.questdetails (game/parts/QuestDetails.lua): a quest as Blizzard's quest log shows it opened.
+---@class MM.ObsQuestDetails
+---@field id MM.QuestID
+---@field title string
+---@field level integer             0: none
+---@field text string               its description (GetQuestLogQuestText), paragraphs split by newlines
+---@field objectivesText string     what it asks, in words (GetQuestLogQuestText's second)
+---@field objectives { text: string, finished: boolean }[]  every one (C_QuestLog.GetQuestObjectives)
+---@field items MM.ObsQuestReward[]    what you get (GetQuestLogRewardInfo)
+---@field choices MM.ObsQuestReward[]  what you choose one of (GetQuestLogChoiceInfo)
+---@field money integer             copper (GetQuestLogRewardMoney)
+---@field coins string              money as the client writes it (C_CurrencyInfo.GetCoinTextureString: the coins as icons); "" when none
+---@field xp integer                GetQuestLogRewardXP
+---@field canAbandon boolean        C_QuestLog.CanAbandonQuest
+---@field canShare boolean          pushable and you're in a group
+---@field watched boolean           in Blizzard's tracker
+---@field complete boolean
+
+---@class MM.ObsQuestReward
+---@field index integer            its place in the client's list (GameTooltip:SetQuestLogItem's)
+---@field name string
+---@field texture? integer|string   its icon
+---@field count integer
+---@field quality integer           the item quality (ITEM_QUALITY_COLORS)
+---@field itemID? integer
+---@field color number[]            { r, g, b }: its quality's colour (ITEM_QUALITY_COLORS)
 
 ---@class MM.ObsQuestLogRow
 ---@field header? true             a header (a zone): title alone

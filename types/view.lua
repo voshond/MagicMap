@@ -112,7 +112,7 @@ local SAFE_VIEW = {
 -- shows in the next Observation (the same frame for one carried out in Input).
 -- One that fails is reported (Runtime) and dropped, never retried.
 
----@alias MM.Command MM.CmdFollow|MM.CmdQuestLog|MM.CmdQuestWatch|MM.CmdQuestShare|MM.CmdQuestAbandon|MM.CmdWaypoint|MM.CmdWay|MM.CmdTracking|MM.CmdTooltip|MM.CmdSlash|MM.CmdLoad|MM.CmdRun|MM.CmdButton
+---@alias MM.Command MM.CmdFollow|MM.CmdQuestLog|MM.CmdQuestWatch|MM.CmdQuestShare|MM.CmdQuestAbandon|MM.CmdQuestDetails|MM.CmdWaypoint|MM.CmdPing|MM.CmdWay|MM.CmdTracking|MM.CmdTooltip|MM.CmdSlash|MM.CmdLoad|MM.CmdRun|MM.CmdButton
 
 ---Follow a quest: the game's super-tracked quest (and watched); false: follow none.
 ---@class MM.CmdFollow
@@ -140,10 +140,21 @@ local SAFE_VIEW = {
 ---@field kind "questabandon"
 ---@field quest MM.QuestID
 
+---Which quest Game reads the details of (the big map's quest log opened on it); false: none.
+---@class MM.CmdQuestDetails
+---@field kind "questdetails"
+---@field quest MM.QuestID|false
+
 ---Set the user waypoint at pos (Game finds the zone uiMap there); false clears it.
 ---@class MM.CmdWaypoint
 ---@field kind "waypoint"
 ---@field pos MM.Pos|false
+
+---Ping the Minimap at pos (the small map sits over it): where Forever's Minimap would on a click there; none
+---if pos is off your map, off the Minimap's radius, or its view isn't known now (game/commands/ping.lua).
+---@class MM.CmdPing
+---@field kind "ping"
+---@field pos MM.Pos
 
 ---Open the chat box holding a "/way <zone> <x> <y>" line for pos (not sent).
 ---@class MM.CmdWay
@@ -164,6 +175,7 @@ local SAFE_VIEW = {
 ---@field anchor? string         "ANCHOR_RIGHT" etc. (default ANCHOR_CURSOR)
 ---@field member? string         a group member's id (MM.ObsMember.id)
 ---@field button? string         a Minimap button's (MM.ObsButton.id): its own tooltip
+---@field questItem? { kind: "reward"|"choice", index: integer, quest: MM.QuestID }  a reward of a quest's details: the item's tooltip
 
 ---Register `/mm <name>` (Game owns slash commands): fn(args) runs wrapped when typed.
 ---Sending it again replaces fn. Added with the walking skeleton (open: new kinds).
