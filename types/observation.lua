@@ -261,6 +261,14 @@ function Oracles.Inside(quest, col, row) end
 ---@field watched boolean           in Blizzard's tracker
 ---@field complete boolean
 
+---Quest rewards (Game.QuestRewards): a quest log row's, and its details' fields of the same names.
+---@class MM.ObsQuestRewards
+---@field items MM.ObsQuestReward[]    what you get (GetQuestLogRewardInfo)
+---@field choices MM.ObsQuestReward[]  what you choose one of (GetQuestLogChoiceInfo)
+---@field money integer             copper (GetQuestLogRewardMoney)
+---@field coins string              money as the client writes it, its coins as icons; "" when none
+---@field xp integer                GetQuestLogRewardXP
+
 ---@class MM.ObsQuestReward
 ---@field index integer            its place in the client's list (GameTooltip:SetQuestLogItem's)
 ---@field name string
@@ -282,3 +290,4 @@ function Oracles.Inside(quest, col, row) end
 ---@field followed? boolean         super-tracked
 ---@field map? MM.UiMapID           its zone's map (GetQuestUiMapID); nil: none given
 ---@field objectives? { text: string, finished: boolean }[]  what it still needs; done: the one completion line
+---@field rewards? MM.ObsQuestRewards  what it gives (the same table while unchanged)

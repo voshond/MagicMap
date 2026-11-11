@@ -46,7 +46,8 @@ to fly there. `/mm map` and `/mm zone` do the same by name.
 
 **The quest log on the big map.** Grown, the big map lists your quests down its right side, as Blizzard's world
 map does beside its own: each zone a header (click to fold it; folded ones stay folded), each quest's level and name
-in its difficulty's colour with what it still needs under it (done: ready for turn-in), and the count of how many
+in its difficulty's colour with what it still needs under it (done: ready for turn-in), under that its rewards in a
+line (small item icons, hover one for its tooltip, then the experience and the money), and the count of how many
 the log holds. The box puts a quest in Blizzard's tracker or takes it out; a click follows it and flies the map to
 its pin (else its zone whole, on its own continent) and opens its details in the panel; hovering lights its area and
 shows its tooltip; right-click to see Details, Track, Follow, Share, Abandon or open it in the quest log. The details, as

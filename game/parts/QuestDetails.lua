@@ -76,6 +76,15 @@ local function Coins(money)
 		math.floor(money % COPPER_PER_GOLD / COPPER_PER_SILVER), money % COPPER_PER_SILVER)
 end
 
+-- Quest id's rewards (MM.ObsQuestRewards), read with it selected (Game.WithSelectedQuest): the list's rows have them too
+-- (game/parts/QuestLog.lua).
+function Game.QuestRewards(id)
+	local money = GetQuestLogRewardMoney and GetQuestLogRewardMoney() or 0
+	return { items = GetNumQuestLogRewards and GetQuestLogRewardInfo and Items(GetNumQuestLogRewards(), GetQuestLogRewardInfo) or {},
+		choices = GetNumQuestLogChoices and GetQuestLogChoiceInfo and Items(GetNumQuestLogChoices(id, true), GetQuestLogChoiceInfo) or {},
+		money = money, coins = Coins(money), xp = GetQuestLogRewardXP and GetQuestLogRewardXP() or 0 }
+end
+
 local function Read(id)
 	local index = C_QuestLog.GetLogIndexForQuestID(id)
 	if not index or index <= 0 then return false end
@@ -86,12 +95,10 @@ local function Read(id)
 	for _, o in ipairs(C_QuestLog.GetQuestObjectives(id) or NONE) do
 		objectives[#objectives + 1] = { text = o.text or "", finished = o.finished == true }
 	end
-	local rewards = GetNumQuestLogRewards and GetQuestLogRewardInfo and Items(GetNumQuestLogRewards(), GetQuestLogRewardInfo) or {}
-	local choices = GetNumQuestLogChoices and GetQuestLogChoiceInfo and Items(GetNumQuestLogChoices(id, true), GetQuestLogChoiceInfo) or {}
-	local money = GetQuestLogRewardMoney and GetQuestLogRewardMoney() or 0
+	local r = Game.QuestRewards(id)
 	return { id = id, title = C_QuestLog.GetTitleForQuestID(id) or info and info.title or "", level = info and info.level or 0,
-		text = text or "", objectivesText = objectivesText or "", objectives = objectives, items = rewards, choices = choices,
-		money = money, coins = Coins(money), xp = GetQuestLogRewardXP and GetQuestLogRewardXP() or 0,
+		text = text or "", objectivesText = objectivesText or "", objectives = objectives, items = r.items, choices = r.choices,
+		money = r.money, coins = r.coins, xp = r.xp,
 		canAbandon = C_QuestLog.CanAbandonQuest(id) == true,
 		canShare = C_QuestLog.IsPushableQuest and C_QuestLog.IsPushableQuest(id) == true and IsInGroup and IsInGroup() == true or false,
 		watched = C_QuestLog.GetQuestWatchType(id) ~= nil, complete = C_QuestLog.IsComplete(id) == true }
@@ -108,6 +115,7 @@ local function Same(a, b)
 	end
 	return true
 end
+Game.SameRead = Same
 
 Game.Part("questdetails", function()
 	local big = Game.bigShown == true

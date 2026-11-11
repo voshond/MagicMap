@@ -111,6 +111,12 @@ def setup():
         Sim.quests[840] = { title = "Conscript of the Horde", level = 10, map = 1411, x = 0.5, y = 0.5, complete = false,
             header = "Durotar", objectives = { { text = "Speak to Kargal", type = "event", finished = false } } }
         Sim.watches[47] = true
+        Sim.quests[52].money, Sim.quests[52].xp = 4500, 1150
+        Sim.quests[52].rewards = { { name = "Militia Buckler", texture = 134955, count = 1, quality = 2, itemID = 1005 } }
+        Sim.quests[106].money, Sim.quests[106].xp = 250, 600
+        Sim.quests[47].xp = 875
+        Sim.quests[47].choices = { { name = "Prospector's Boots", texture = 132539, count = 1, quality = 2, itemID = 1006 },
+            { name = "Miner's Gloves", texture = 132939, count = 1, quality = 1, itemID = 1007 } }
         RAID_CLASS_COLORS.WARRIOR = { r = 0.78, g = 0.61, b = 0.43 }
         RAID_CLASS_COLORS.PRIEST = { r = 1, g = 1, b = 1 }
         RAID_CLASS_COLORS.SHAMAN = { r = 0, g = 0.44, b = 0.87 }

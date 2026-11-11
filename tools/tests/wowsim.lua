@@ -511,7 +511,8 @@ function FontString:SetMaxLines(n) end
 function FontString:SetSpacing(n) end
 function FontString:GetStringWidth()
 	local _, size = self:GetFont()
-	return #(S[self].text or "") * size * 0.55
+	local text, icons = (S[self].text or ""):gsub("|T.-|t", "")
+	return #text * size * 0.55 + icons * size -- (an inline texture: a glyph as wide as the font's tall)
 end
 function FontString:GetUnboundedStringWidth() return self:GetStringWidth() end
 function FontString:GetStringHeight()
