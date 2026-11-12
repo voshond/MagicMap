@@ -464,6 +464,35 @@ local function AddButtons(sub)
 	if not Model.buttons[1] then sub:CreateButton("None found"):SetEnabled(false) end
 end
 
+-- Default zoom (the small map's alone: Blizzard's Minimap's zooms are known only there): a radio a zoom that it reaches,
+-- named by the yards across the window it shows, the widest first; the chosen one gone to at once (Motion.Reset).
+local function AddDefaultZoom(root)
+	local now, s = UI.DefaultZoomIndex()
+	if not now then return end
+	local w, h = UI.Window.Size()
+	local side = math.min(w, h)
+	local function Across(i) return math.floor(side / s[i] * ns.Atlas.TILE_YARDS / 10 + 0.5) * 10 .. " yd across" end -- /: never 0 (a step > 0)
+	local function Pick(v)
+		return function()
+			Run(function()
+				UI.Feel.Set("zoom.default", v)
+				UI.Motion.Reset()
+			end)
+			return MenuResponse.Refresh
+		end
+	end
+	local chosen = function() return UI.Feel.Get("zoom.default") or 0 end
+	local sub = root:CreateButton(Mark("Interface\\Icons\\INV_Misc_Spyglass_02") .. "Default zoom")
+	local n = 0
+	for i = 1, #s do
+		if s[i] <= UI.Motion.MAX_ZOOM then n = i end
+	end
+	sub:CreateRadio("Auto (" .. Across(math.max(1, n - 1)) .. ")", function() return chosen() == 0 end, Pick(0))
+	for i = 1, n do
+		sub:CreateRadio(Across(i), function() return chosen() == i end, Pick(i))
+	end
+end
+
 -- The AddOns button's menu (ui/Controls.lua): the minimap's buttons, a row each.
 function Menus.AddOns(owner)
 	Menus.Show(owner, function(_, root) AddButtons(root) end)
@@ -475,6 +504,7 @@ function Menus.Gear(owner)
 		AddLayers(root, "map")
 		AddTracking(root)
 		UI.Resources.Menu(root)
+		AddDefaultZoom(root)
 		AddLayers(root, "addons")
 		root:CreateDivider()
 		if not UI.Replace or UI.Replace.Get("minimap") then -- (only while ours stands in for it: the contract's Get; shown if it's absent)
@@ -484,6 +514,6 @@ function Menus.Gear(owner)
 			:SetTooltip(Tip("Reset to defaults", "Every layer back as it was installed."))
 		root:CreateDivider()
 		root:CreateButton(Mark("Interface\\Icons\\Trade_Engineering") .. "Settings…", function() Run(UI.Feel.Open) end)
-			:SetTooltip(Tip("Settings…", "MagicMap's settings window: general, the map's looks, the title, icons, tracking, pathing, quest areas, grouping, diagnostics."))
+			:SetTooltip(Tip("Settings…", "MagicMap's settings window: general, the map's looks, the title, pins, the quest pill, tracking, pathing, quest areas, diagnostics."))
 	end)
 end
