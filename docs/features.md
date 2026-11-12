@@ -28,8 +28,8 @@ whose buttons show while you hover. The wheel or + / − zoom it, every notch a 
 button above + (shown while you're off the default zoom) glides back to it; drag to pan, and left
 alone for 3 seconds after a pan or zoom it glides back to you at the default zoom (Return to default, in
 Settings). The pin above the reset arrow holds the view you've made till you click it again, Track or Path to
-something, or reload. The default zoom is the gear's Default zoom: Auto (the one before the closest of
-Blizzard's minimap zooms the map reaches) or any of those zooms, named by the yards across the window. Move it by the
+something, or reload. The default zoom is the gear's Default zoom: Auto (the widest of
+Blizzard's minimap zooms, as its own starts: its tracking blips reach furthest) or any of those zooms, named by the yards across the window. Move it by the
 zone name or the border (or Alt-drag the map), resize it by the corner (it keeps the yards across),
 and `/mm reset` puts it back. `/mm`, the rim button or the addon compartment swaps it for
 Blizzard's minimap, and back (with the minimap replaced). The minimap button is drawn as other

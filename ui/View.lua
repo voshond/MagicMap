@@ -16,7 +16,8 @@ local DEFAULTS = { layers = {}, minimap = "ours", shown = true, zoom = 384, foll
 
 -- The small map's default zoom (the reset button, the idle return, every load): with Blizzard's Minimap's zooms over
 -- it (obs.minimap.steps), the one chosen in the gear's Default zoom ("zoom.default": its index, widest 1; 0, the
--- default: the one before its closest the map reaches), no closer than the map goes; else DEFAULTS.zoom. While a small
+-- default: its widest, as Blizzard's own starts, so its blips (tracking) reach as far as they can), no closer than the
+-- map goes; else DEFAULTS.zoom. While a small
 -- building's auto-zoom holds the map in (ui/Interiors.lua), that.
 local function Reachable(s)
 	local n = 0
@@ -33,7 +34,7 @@ function UI.DefaultZoomIndex()
 	if n == 0 then return nil end
 	local chosen = UI.Feel.Get("zoom.default") or 0
 	if chosen > 0 then return math.min(chosen, n), s end
-	return math.max(1, n - 1), s
+	return 1, s
 end
 function UI.DefaultZoom()
 	if not UI.BigMap.big and UI.Interiors.Holding() then return UI.Motion.MAX_ZOOM end
