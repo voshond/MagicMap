@@ -116,7 +116,6 @@ Controls.zoomIn, Controls.zoomOut = zoomIn, zoomOut
 -- or the zoom isn't the default (UI.DefaultZoom(), ui/View.lua); a click flies back to you at that zoom (Motion.Reset).
 -- A gold circular arrow as the + and - are gold glyphs: the first of Blizzard's the client has (greyed and tinted the
 -- zoom buttons' gold: Forever's revert arrow is orange), else its refresh button's arrows (RefreshButtonTemplate's UI-RefreshButton, else its file).
-local RESET_TOL = 1 -- px per tile: a zoom this close to the default is the default
 local GOLD_ARROWS = { "transmog-icon-revert", "talents-button-undo" }
 local WHITE_ARROWS = { "common-icon-undo", "uitools-icon-refresh" }
 local ZOOM_GOLD = { 1, 0.86, 0.25 }
@@ -141,6 +140,39 @@ do
 end
 zoomReset:Hide()
 Controls.zoomReset = zoomReset
+
+-- Pin: above the reset, on the small map while it would go back by itself (Return to default on: Motion's idle return)
+-- and is off its default, or is pinned. A click holds this view till it's clicked again (Motion.Pin; till a reload, a
+-- reset, Track or Path to). Blizzard's pin, greyed and the + and -'s gold at rest, its yellow one while pinned.
+local zoomPin = CreateFrame("Button", nil, Chrome.controls)
+zoomPin:SetSize(20, 20)
+zoomPin:SetPoint("BOTTOM", zoomReset, "TOP", 0, 2)
+do
+	local atlas = FirstAtlas("friendslist-recentallies-pin")
+	local lit = FirstAtlas("friendslist-recentallies-pin-yellow") or atlas
+	for _, layer in ipairs({ "ARTWORK", "HIGHLIGHT" }) do
+		local t = zoomPin:CreateTexture(nil, layer)
+		if atlas then t:SetAtlas(atlas) else t:SetTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up") end
+		t:SetSize(18, 18)
+		t:SetPoint("CENTER", zoomIn, "CENTER", 0, 44)
+		if layer == "HIGHLIGHT" then t:SetBlendMode("ADD") else zoomPin.art = t end
+	end
+	function zoomPin.Lit(on)
+		local t = zoomPin.art
+		if on and lit then
+			t:SetAtlas(lit)
+			t:SetDesaturated(false)
+			t:SetVertexColor(1, 1, 1)
+		else
+			if atlas then t:SetAtlas(atlas) end
+			t:SetDesaturated(true)
+			t:SetVertexColor(unpack(ZOOM_GOLD))
+		end
+	end
+	zoomPin.Lit(false)
+end
+zoomPin:Hide()
+Controls.zoomPin = zoomPin
 
 ---------------------------------------------------------------------------
 -- The quest pill (bottom left): the one pill for what you go to. With a target on this map (Model.Target: your
@@ -360,7 +392,7 @@ Controls.questClose = close
 
 -- The pill's look and behaviour (its page, through SetPill; these its defaults): its size, whether it shows, what it
 -- says (the pieces, in order), its fill, and whether it fades until you point at the map.
-local PILL = { scale = 0.9, questShow = "followed", pieces = { "progress", "distance" }, bar = true }
+local PILL = { scale = 0.9, questShow = "off", pieces = { "progress", "distance" }, bar = true }
 -- The first piece in the pill's text; the rest secondary, smaller and muted, after it.
 local lineText = line:CreateFontString(nil, "OVERLAY")
 lineText:SetTextColor(0.95, 0.9, 0.8)
@@ -621,8 +653,11 @@ local function Reveal()
 	Chrome.controls:SetAlpha(a)
 	gear:SetAlpha(a)
 	mode:SetAlpha(a)
+	-- (only while ours replaces the minimap: else its buttons are on Blizzard's, where they were)
+	local own = UI.Replace.Get("minimap")
+	addons:SetShown(own)
 	addons:SetAlpha(hover)
-	addons:EnableMouse(hover > 0)
+	addons:EnableMouse(own and hover > 0)
 	Chrome.grip:SetAlpha(GRIP_ALPHA * a)
 end
 
@@ -657,13 +692,23 @@ end
 -- The zoom buttons tinted while the zoom is past Blizzard's Minimap's (Motion.PastBlips: its blips not shown).
 ---------------------------------------------------------------------------
 
-local resetShown, past = false, nil
+local resetShown, pinShown, pinLit, past = false, false, false, nil
 local PAST = { 0.45, 0.75, 1 } -- the zoom buttons' tint past Blizzard's Minimap's zooms (its blips not shown)
 local function ResetLook()
-	local off = not Camera.follow or math.abs(Camera.cam.zoom - UI.DefaultZoom()) > RESET_TOL
+	local off = UI.Motion.OffDefault()
 	if off ~= resetShown then
 		resetShown = off
 		zoomReset:SetShown(off)
+	end
+	local pinned = UI.Motion.pinned
+	local pin = pinned or (off and UI.Motion.Returns() and not UI.View().window.big)
+	if pin ~= pinShown then
+		pinShown = pin
+		zoomPin:SetShown(pin)
+	end
+	if pinned ~= pinLit then
+		pinLit = pinned
+		zoomPin.Lit(pinned)
 	end
 	local p = UI.Motion.PastBlips()
 	if p ~= past then
@@ -676,6 +721,7 @@ local function ResetLook()
 end
 
 zoomReset:SetScript("OnClick", Runtime.Wrap("map: zoom reset", function() UI.Motion.Reset() end))
+zoomPin:SetScript("OnClick", Runtime.Wrap("map: zoom pin", function() UI.Motion.Pin(not UI.Motion.pinned) end))
 
 -- The buttons zoom held on you while following, else on the view's centre (Core.lua:1420-1443).
 zoomIn:SetScript("OnClick", Runtime.Wrap("map: zoom in", function() UI.Motion.ZoomStep(1) end))
@@ -750,6 +796,7 @@ end
 Controls.Tip(zoomIn, function() return "Zoom in" end)
 Controls.Tip(zoomOut, function() return "Zoom out" end)
 Controls.Tip(zoomReset, function() return Camera.follow and "Reset zoom" or "Back to you" end)
+Controls.Tip(zoomPin, function() return UI.Motion.pinned and "Unpin this view" or "Pin this view" end)
 Controls.Tip(gear, function() return "Settings" end)
 Controls.Tip(addons, function() return "AddOns" end)
 close:SetScript("OnClick", Runtime.Wrap("map: pill close", function() UI.Track.Clear() end))

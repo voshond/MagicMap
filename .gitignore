@@ -17,3 +17,6 @@ demo/ai/
 /.proof/
 /.wut/
 /.proof-art/
+
+# Promo videos: game footage (Blizzard art), never committed
+promo/

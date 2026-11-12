@@ -306,3 +306,78 @@ def test_farmhud():
     sim.Run(0.5)
     assert Game.minimap.engaged and Game.obs.minimap.blocker is None
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_tooltips_after_release():
+    """Released, Blizzard's Minimap has its own tooltips again: our hover hook (it can't be undone) leaves it be, and
+    our tooltip handler is off it (it drew nothing outside our window: Blizzard's tooltips were dead)."""
+    L, sim, ns = boot()
+    G = L.globals()
+    sim.Slash("/mm toggle")
+    sim.Run(1)
+    assert ns.Game.minimap.engaged
+    sim.Slash("/mm toggle")
+    sim.Run(1)
+    assert not ns.Game.minimap.engaged
+    sim.blip = "Peacebloom"  # (the blip under the cursor)
+    mm = G.Minimap
+    sim.MoveCursorTo(mm)
+    sim.FireScript(mm, "OnEnter", False)
+    sim.Run(0.5)
+    same = L.eval("function(a, b) return a == b end")
+    assert same(mm.GetScript(mm, "OnUpdate"), G.Minimap_OnUpdate) and G.GameTooltip.IsShown(G.GameTooltip)
+    assert not errors(sim, ns), errors(sim, ns)
+
+
+def test_blip_above_or_below():
+    """A blip above or below you (the client's arrow, a texture escape, in its name): the tooltip as any other's, the
+    herb its icon, colour and skill pill, the arrow a badge over the icon's corner (ui/BlipTip.lua, Tip.Badge)."""
+    L, sim, ns = boot()
+    G = L.globals()
+    sim.Slash("/mm toggle")
+    sim.Run(2)
+    m = ns.Game.minimap
+    m.blip = True
+    m.names = L.table_from(["Peacebloom"])
+    m.marks = L.table_from(["|Tinterface\\minimap\\minimap-arrow-up:0|t"])
+    sim.Run(0.5)
+    tt = G.GameTooltip
+    lines = [sim.state[r].text for r in tt.GetRegions(tt) if sim.state[r].text]
+    assert tt.IsShown(tt) and any("Peacebloom" in t and "|T" in t for t in lines), lines  # (the icon kept)
+    assert not any("arrow" in t for t in lines), lines  # (not in the text: a badge)
+    badges = [r for r in tt.GetRegions(tt) if sim.state[r].shown and sim.state[r].texture
+              and "arrow" in str(sim.state[r].texture)]
+    assert len(badges) == 1, lines
+    assert not errors(sim, ns), errors(sim, ns)
+
+
+def test_engage_fails_loudly():
+    """A takeover that fails part way (a frame on the Minimap that won't move) gives back what it took at once, isn't
+    tried again this session (the blocker) and says so once in chat; the error is recorded. A radius that stays odd
+    (zooms not the sizes known: a game update) hides the blips and says so once too."""
+    L, sim, ns = boot()
+    Game, H = ns.Game, L.execute(HELPERS, sim)
+    sim.Run(1)
+    before = H.Snapshot()
+    L.execute("local bad = CreateFrame('Frame', 'MagicMapTestStubborn', Minimap)\n"
+              "bad.SetParent = function() error('stubborn') end")
+    n = len(sim.prints)
+    sim.Slash("/mm toggle")
+    sim.Run(1)
+    said = [sim.prints[i] for i in range(n + 1, len(sim.prints) + 1)]
+    assert not Game.minimap.engaged and Game.minimap.failed and Game.obs.minimap.blocker.startswith("couldn't take")
+    assert H.Snapshot().replace("MagicMapTestStubborn", "") == before.replace("MagicMapTestStubborn", ""), (before, H.Snapshot())
+    assert sum("couldn't put Blizzard's minimap blips" in p for p in said) == 1, said
+    assert any("stubborn" in e for e in errors(sim, ns))
+
+    L, sim, ns = boot("MagicMap2DB = { UI = { _v = 1, shown = true, follow = true, cluster = false,"
+                      " window = { left = 20, top = 300, w = 360, h = 150 } } }")
+    sim.Run(3)
+    assert ns.Game.minimap.engaged and ns.Game.minimap.overlaid
+    L.execute("local get = C_Minimap.GetViewRadius\n"
+              "C_Minimap.GetViewRadius = function() local r = get(); return r > 0 and r * 1.3 or r end")
+    n = len(sim.prints)
+    sim.Run(7)
+    said = [sim.prints[i] for i in range(n + 1, len(sim.prints) + 1)]
+    assert not ns.Game.minimap.overlaid and sum("aren't the sizes MagicMap knows" in p for p in said) == 1, said
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
