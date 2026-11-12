@@ -110,14 +110,16 @@ def test_hooks():
     sim.Run(0.5)
     assert not big.big and cluster.GetAlpha(cluster) == 1 and not escape(sim)
 
-    # In combat: M opens Blizzard's as usual (hiding it is blocked) and UI hears nothing; the red
-    # button grows, Escape shrinks: the rim, the home fade and the catcher change nothing protected.
+    # In combat: M opens Blizzard's (hiding it is blocked: stashed unseen, test_bigmap_in_combat) and UI hears
+    # "worldmap"; M again closes both. The red button grows, Escape shrinks: the rim, the home fade and the
+    # catcher change nothing protected.
     sim.inCombat = True
     sim.Press("M")
     sim.Step()
-    assert shown() and kinds(ns) == [] and not big.big
+    assert shown() and kinds(ns) == ["worldmap"] and big.big
     sim.Press("M")
-    sim.Step()
+    sim.Run(0.5)
+    assert not shown() and not big.big
     view.chrome = L.table(rimArrows=False, questRing=False)
     sim.Click(ns.UI.Controls.mode)
     sim.Run(0.5)
@@ -150,8 +152,8 @@ def test_override_world_map_off():
 
 def test_replace_quest_log():
     """Replace quest log on: L, with our window shown, hides the log Blizzard just opened and hands "questlog"
-    on: UI grows the big map with its quest log out (brought back if put away), L again closes it. In combat L
-    is Blizzard's; so is our own call for the client's log (Game.ToggleQuestLog)."""
+    on: UI grows the big map with its quest log out (brought back if put away), L again closes it. In combat Blizzard's
+    is stashed unseen under ours instead; our own call for the client's log (Game.ToggleQuestLog) is left alone."""
     L, sim, ns = boot()
     G, UI, big = L.globals(), ns.UI, ns.UI.BigMap
     panel = UI.QuestLog.panel
@@ -186,12 +188,24 @@ def test_replace_quest_log():
     sim.Step()
     assert not shown() and kinds(ns) == [] and not big.big
 
-    sim.inCombat = True  # hiding it is blocked: Blizzard's opens as usual
+    alpha = lambda: G.WorldMapFrame.GetAlpha(G.WorldMapFrame)  # noqa: E731
+    sim.inCombat = True  # hiding it is blocked: stashed unseen under ours, which grows
     sim.Press("L")
     sim.Step()
-    assert shown() and kinds(ns) == [] and not big.big
-    sim.Press("L")
+    assert shown() and alpha() == 0 and kinds(ns) == ["questlog"] and big.big
+    sim.Run(0.5)
+    assert panel.IsShown(panel)
+    sim.Press("L")  # the client closes its own, ours with it
+    sim.Run(0.5)
+    assert not shown() and alpha() == 1 and not big.big
+    sim.Press("L")  # stashed again; combat over while big: hidden for real, ours stays
+    sim.Run(0.5)
     sim.inCombat = False
+    sim.Step()
+    assert not shown() and alpha() == 1 and big.big
+    sim.Press("L")
+    sim.Run(0.5)
+    assert not big.big and not shown()
     assert len(sim.protectedCalls) == 0, [c.call for c in sim.protectedCalls.values()]
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 

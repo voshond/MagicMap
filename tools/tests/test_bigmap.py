@@ -121,3 +121,64 @@ def test_bigmap():
     sim2.Run(0.4)
     assert near(rect(f2), (300, 950, 1344, 756))
     assert not errors(sim2, ns2), "\n\n".join(errors(sim2, ns2))
+
+
+def test_bigmap_in_combat():
+    """M in combat (spike-bugs K2: hiding Blizzard's map is blocked): Blizzard's is stashed at alpha 0 under ours,
+    which grows; M or Escape closes both (the client's own path). Shrunk by the red button in combat, Blizzard's
+    shows again; combat ending while big hides it. Ours already big: Blizzard's opens over it as before."""
+    L, sim, ns = fresh()
+    G, UI, big = L.globals(), ns.UI, ns.UI.BigMap
+    wm = G.WorldMapFrame
+    shown, alpha = lambda: wm.IsShown(wm), lambda: wm.GetAlpha(wm)  # noqa: E731
+    sim.Run(0.5)
+    sim.inCombat = True
+
+    sim.Press("M")
+    sim.Step()
+    assert big.big and shown() and alpha() == 0
+    sim.Run(0.4)
+    sim.Press("M")
+    sim.Run(0.4)
+    assert not big.big and not shown() and alpha() == 1
+
+    sim.Press("M")
+    sim.Run(0.4)
+    assert sim.Escape()[0]  # (the client's Escape closes its map too; the sim's leaves it: seen again)
+    sim.Run(0.4)
+    assert not big.big and shown() and alpha() == 1
+    sim.Press("M")
+    sim.Run(0.4)
+    assert not big.big and not shown()
+
+    sim.Press("M")
+    sim.Run(0.4)
+    sim.Click(UI.Controls.mode)
+    sim.Run(0.4)
+    assert not big.big and shown() and alpha() == 1
+    sim.Press("M")
+    sim.Run(0.4)
+    assert not big.big and not shown()
+
+    sim.Click(UI.Controls.mode)
+    sim.Run(0.4)
+    sim.Press("M")
+    sim.Step()
+    assert big.big and shown() and alpha() == 1
+    sim.Press("M")
+    sim.Step()
+
+    sim.Click(UI.Controls.mode)
+    sim.Run(0.4)
+    assert not big.big
+    sim.Press("M")
+    sim.Run(0.4)
+    sim.inCombat = False
+    sim.FireEvent("PLAYER_REGEN_ENABLED")
+    sim.Step()
+    assert big.big and not shown() and alpha() == 1
+    sim.Press("M")
+    sim.Run(0.4)
+    assert not big.big and not shown()
+    assert len(sim.protectedCalls) == 0, [c.call for c in sim.protectedCalls.values()]
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))

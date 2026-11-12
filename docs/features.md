@@ -18,7 +18,7 @@ Players who had 2.0 keep their setup (migrated to both, no welcome).
   closing it hides it. Blizzard's minimap is left as it is: no blips over our map, no AddOns button.
 - *World map replaced:* M opens our big map. Not replaced: M is Blizzard's world map, as always.
 - *Quest log replaced* (Settings > General > Replace quest log): L opens our big map with its quest log
-  out (bringing the log back if you'd put it away), and L again closes it. In combat, and while our map is
+  out (bringing the log back if you'd put it away), and L again closes it. While our map is
   switched off, L is Blizzard's. Not replaced: L is Blizzard's quest log, as always.
 - *Neither:* nothing of Blizzard's is touched; the minimap button, the addon compartment and `/mm`
   open and close our big map as a window of its own.
@@ -254,7 +254,9 @@ only then; a row with more under it (Pins' families and types) has a plus that o
   and not on the big map or while a path's line is drawn. If a game update changes the minimap's zoom sizes, or
   putting the blips over the map fails, MagicMap says so once in chat and leaves Blizzard's minimap as it was
   (`/mm overlay` for details).
-- **In combat**, M opens Blizzard's world map: ours can't open then.
+- **In combat** Blizzard's map can't be hidden, so M and L leave it open unseen under ours, and the key again
+  closes both. Shrinking ours another way in combat shows Blizzard's again; it's hidden once combat ends.
+  With ours already big, M and L open Blizzard's over it as usual.
 - **Indoors** only buildings with Blizzard's indoor minimap pictures get them; elsewhere the terrain.
 - **Instances** that hide your position show Blizzard's own minimap, ground and all.
 - **Rotate Minimap**: MagicMap stays north up, and other addons' minimap pins hide while it's on.
