@@ -135,7 +135,8 @@ def test_gear():
     radios = [r for r in zooms["items"].values() if r.kind == "radio"]
     auto = UI.DefaultZoom()
     assert plain(radios[0].text).startswith("Auto (") and radios[0].isSelected() and len(radios) > 2
-    n = len(radios) - 1  # (the closest it reaches; Auto's the one before)
+    n = len(radios) - 1  # (the closest it reaches; Auto's the widest)
+    assert auto == ns.Model.minimap.steps[1]
     assert radios[n].onSelect() == refresh
     sim.Run(2)
     steps = ns.Model.minimap.steps

@@ -487,7 +487,7 @@ local function AddDefaultZoom(root)
 	for i = 1, #s do
 		if s[i] <= UI.Motion.MAX_ZOOM then n = i end
 	end
-	sub:CreateRadio("Auto (" .. Across(math.max(1, n - 1)) .. ")", function() return chosen() == 0 end, Pick(0))
+	sub:CreateRadio("Auto (" .. Across(1) .. ")", function() return chosen() == 0 end, Pick(0))
 	for i = 1, n do
 		sub:CreateRadio(Across(i), function() return chosen() == i end, Pick(i))
 	end
