@@ -3,12 +3,15 @@
 --     shown, or the minimap isn't replaced (then the window is hidden until M opens it big): the world map it
 --     just opened is hidden again, and
 --     UI hears "worldmap" (it grows or shrinks the window). M closing Blizzard's map (opened by L,
---     the quest log) is left alone; so is M in combat, where hiding it is blocked (spike-bugs K2):
---     Blizzard's opens as usual.
+--     the quest log) is left alone.
 --   L (ToggleQuestLog) while View.replace.questlog, the window as for M: the log it just opened (the world map
 --     on a Retail-engine client, else the QuestLogFrame) is hidden again, and UI hears "questlog" (it opens the
---     big map with its quest log, or closes it). L closing Blizzard's, L in combat and our own call
+--     big map with its quest log, or closes it). L closing Blizzard's and our own call
 --     (Game.ToggleQuestLog: game/commands/questlog.lua, the client's log asked for) are left alone.
+--   In combat hiding Blizzard's is blocked (spike-bugs K2), so M or L opening it while ours is small stashes
+--     it instead: alpha 0, under ours as it grows (not if its strata is above ours: then it shows as usual).
+--     The key again closes it (the client's own secure path) and ours with it. Ours shrinking otherwise in
+--     combat shows the stashed one again; combat ending while ours is big hides it.
 --   Escape while big: a catcher in UISpecialFrames is shown, and Escape closing it is "escape"
 --   (the settings window, ui/Feel.lua, is named there too).
 -- What's caught (game/Button.lua's "toggle" too) is handed over as obs.hooked, its own part:
@@ -35,10 +38,45 @@ Game.Part("hooked", function()
 	return handed
 end)
 
+local STRATA = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7,
+	TOOLTIP = 8 }
+local stashed -- Blizzard's map or log opened in combat, left open but unseen under ours till combat ends
+
+local function Stash(frame)
+	if big or (STRATA[frame:GetFrameStrata()] or 4) > STRATA.HIGH then return false end
+	frame:SetAlpha(0)
+	stashed = frame
+	return true
+end
+
+local function Unstash()
+	if not stashed then return false end
+	stashed:SetAlpha(1)
+	stashed = nil
+	return true
+end
+
+-- Hides what M or L just opened (in combat: stashes it); true when ours should hear the key.
+local function Take(frame)
+	if not InCombatLockdown() then
+		HideUIPanel(frame)
+		return true
+	end
+	return Stash(frame)
+end
+
+-- The key closed the client's own stashed one (its secure path): ours closes with it.
+local function Closed()
+	return stashed ~= nil and not stashed:IsShown() and Unstash()
+end
+
 hooksecurefunc("ToggleWorldMap", Runtime.Wrap("game: M", function()
-	if not override or not WorldMapFrame:IsShown() or InCombatLockdown() then return end
-	HideUIPanel(WorldMapFrame)
-	Game.Hooked("worldmap")
+	if not override then return end
+	if not WorldMapFrame:IsShown() then
+		if Closed() then Game.Hooked("worldmap") end
+		return
+	end
+	if Take(WorldMapFrame) then Game.Hooked("worldmap") end
 end))
 
 function Game.ToggleQuestLog()
@@ -49,11 +87,13 @@ end
 
 hooksecurefunc("ToggleQuestLog", Runtime.Wrap("game: L", function()
 	if passing then passing = false; return end
-	if not questlog or InCombatLockdown() then return end
+	if not questlog then return end
 	local log = WorldMapFrame:IsShown() and WorldMapFrame or QuestLogFrame and QuestLogFrame:IsShown() and QuestLogFrame
-	if not log then return end
-	HideUIPanel(log)
-	Game.Hooked("questlog")
+	if not log then
+		if Closed() then Game.Hooked("questlog") end
+		return
+	end
+	if Take(log) then Game.Hooked("questlog") end
 end))
 
 local catcher = CreateFrame("Frame", "MagicMapWorldMapEscape", UIParent) -- (UISpecialFrames takes names)
@@ -79,6 +119,10 @@ Game.Apply("hooks", function(view)
 	override = ours and r.worldmap == true
 	questlog = ours and r.questlog == true
 	if catcher:IsShown() ~= big then catcher:SetShown(big) end
+	-- A stash lasts while ours covers it in combat: after, it's hidden, or (still in combat) seen again.
+	if not stashed or (big and stashed:IsShown() and InCombatLockdown()) then return end
+	if stashed:IsShown() and not InCombatLockdown() then HideUIPanel(stashed) end
+	Unstash()
 end)
 
 local probe -- a check waiting for the client's word: { hid, blocked }
