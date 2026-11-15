@@ -519,6 +519,52 @@ Game.Slash("hover", "in 3 s: what has the mouse, and the borrowed pins under the
 	end)
 end)
 
+-- /mm pins: the world pins as they stand: borrowing or not and why, the holder and every frame up from it (alpha,
+-- strata, level, rect: what can hide them all), how many are borrowed, shown and within the map's view, a few of them,
+-- and the library's own count on this map.
+Game.Slash("pins", "other addons' world pins: borrowed, shown, and what could hide them", function()
+	Game.Print(("pins: open %s, Blizzard's world map shown %s, job %s, dirty %s, zoom %s, instance %s"):format(
+		tostring(open), tostring(WorldMapFrame:IsShown()), job and (job.kind .. (Running() and " running" or " done")) or "none",
+		tostring(dirty), tostring(zoom), tostring(inst)))
+	if not socket then Game.Print("pins: no world socket yet"); return end
+	local f = socket
+	while f and f ~= UIParent do
+		Game.Print(("  %s alpha %.2f/%.2f%s"):format(Describe(f), f:GetAlpha(), f:GetEffectiveAlpha(),
+			f.DoesClipChildren and f:DoesClipChildren() and " clips" or ""))
+		f = f:GetParent()
+	end
+	local view = socket:GetParent() and socket:GetParent():GetParent()
+	local vl, vb, vw, vh
+	if view then vl, vb, vw, vh = view:GetRect() end
+	local n, mine, shown, inside, samples = 0, 0, 0, 0, {}
+	for icon in pairs(hosted) do
+		n = n + 1
+		if icon:GetParent() == socket then mine = mine + 1 end
+		if icon:IsVisible() then
+			shown = shown + 1
+			local l, b = icon:GetCenter()
+			if l and vl and l >= vl and l <= vl + vw and b >= vb and b <= vb + vh then
+				inside = inside + 1
+				if #samples < 3 then samples[#samples + 1] = icon end
+			end
+		end
+	end
+	Game.Print(("pins: %d borrowed, %d still on our holder, %d shown, %d of those within the map's view"):format(n, mine,
+		shown, inside))
+	for _, icon in ipairs(samples) do
+		Game.Print(("  pin %s alpha %.2f/%.2f"):format(Describe(icon), icon:GetAlpha(), icon:GetEffectiveAlpha()))
+	end
+	for _, copy in ipairs(copies) do
+		local here, total = 0, 0
+		for _, data in pairs(copy.lib.worldmapPins) do
+			total = total + 1
+			if data.instanceID == inst then here = here + 1 end
+		end
+		Game.Print(("pins: %s's library: %d world pins, %d on this map"):format(copy.tag ~= "" and copy.tag or "shared",
+			total, here))
+	end
+end)
+
 Game.Apply("addon pins", function(view)
 	WorldPins(view)
 	MinimapPins(view)
