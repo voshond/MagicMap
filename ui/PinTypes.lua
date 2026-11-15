@@ -21,7 +21,7 @@
 -- inherits All's (zoomed), a family's, a type's like its size; by default quests, your party, flight points,
 -- dungeons and raids, your corpse and waypoint always, the rest zoomed in. The threshold moves Types.Rev (the big map
 -- opened or closed, the view resized, the setting), so the pins are laid out again for it. Other addons' pins draw
--- by their own addons' rules: no rule for them.
+-- by their own addons' rules: no rule for them here; their On the big map is the world socket's (ui/Sockets.lua).
 
 local _, ns = ...
 local UI = ns.UI
@@ -38,6 +38,7 @@ local ZOOM_IN = 3000 -- yards across the big map's view: "zoomed in" types show 
 local STEP = 1.1 -- the threshold's zoom, on a grid of this ratio: a resize moves it (a layout) only a step at a time
 local LOG_STEP = math.log(STEP)
 local BIG = { { "Always", "always" }, { "Zoomed in", "zoomed" } }
+Types.BIG = BIG -- (Other addons' own rule's options too: ui/Sockets.lua)
 
 local FAMILIES = {
 	{ key = "quests", name = "Quests", big = "always" }, { key = "rares", name = "Rares & treasures" },
