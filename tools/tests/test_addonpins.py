@@ -136,6 +136,31 @@ def test_world_pins():
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 
+def test_questie_module_pins():
+    """Questie 12.8 and later: its copy a module of its loader (QuestieLoader._modules.HBDPins), not in LibStub. Found
+    all the same: its world pins on our map, small and big, Stormwind's too; its addon row in the gear."""
+    L, sim, ns = boot()
+    sim.Slash("/mm toggle")
+    sim.Run(2)
+    q = sim.LoadQuestie(True)
+    assert L.globals().LibStub.libs["HereBeDragonsQuestie-Pins-2.0"] is None
+    sim.FireEvent("ADDON_LOADED", "Questie")
+    icons = {}
+    for name, (m, x, y) in {"goldshire": (1429, 0.42, 0.66), "stormwind": (1453, 0.5, 0.5)}.items():
+        icon = sim.QuestieIcon(L.table_from({"Type": "available", "Id": 9000 + len(icons)}))
+        q.AddWorldMapIconMap(q, L.globals().Questie, icon, m, x, y, 3)
+        icons[name] = icon
+    sim.Run(1)
+    view = ns.UI.View()
+    assert any(a.key == "Questie" and a.world for a in ns.Model.addons.values())
+    assert hosted(L, icons, view.sockets.world.frame) == ["goldshire", "stormwind"]
+    sim.Press("M")
+    sim.Run(2)
+    assert ns.UI.BigMap.big and hosted(L, icons, view.sockets.world.frame) == ["goldshire", "stormwind"]
+    assert all(icon.IsVisible(icon) for icon in icons.values())
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
 def test_minimap_pins():
     """GatherMate's herb (the shared copy) and Questie's (renamed) minimap pins through every host."""
     L, sim, ns = boot()

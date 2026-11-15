@@ -1,7 +1,7 @@
 -- Other addons' pins on our map: the spike's AddonPins.lua, and the minimap pins of its
 -- MinimapTakeover.lua. Addons put pins on Blizzard's world map and Minimap through
--- HereBeDragons-Pins-2.0, each through its copy in LibStub (Questie's renamed:
--- HereBeDragonsQuestie-Pins-2.0).
+-- HereBeDragons-Pins-2.0, each through its copy in LibStub (Questie's renamed: HereBeDragonsQuestie-Pins-2.0;
+-- since Questie 12.8 a module of its own loader instead, QuestieLoader._modules.HBDPins: Scan finds both).
 -- World pins: while our window is shown with a world socket (View.sockets.world) and Blizzard's world
 -- map isn't, Game borrows the pin frames ("icons") of each addon whose layer is on (View.layers
 -- "addon:<key>") onto the socket at their world position; each goes back where it was (parent,
@@ -72,28 +72,44 @@ local METHODS = { AddWorldMapIconWorld = World, AddWorldMapIconMap = World, Remo
 	RemoveAllWorldMapIcons = World, AddMinimapIconWorld = Listed, AddMinimapIconMap = Listed,
 	RemoveMinimapIcon = Listed, RemoveAllMinimapIcons = Listed }
 
--- Every copy in LibStub (it has no events: at login, when an addon loads, when our window opens).
--- A newer minor loading over a copy redefines its methods, dropping our hooks: hooked again
--- (AddonPins.lua:55-56).
-local function Scan()
-	if not LibStub then return end -- no addon brought one (spike-bugs E4)
-	for major, lib in LibStub:IterateLibraries() do
-		local tag = major:match(PINS_MAJOR)
-		if tag then
-			local h = hooks[lib]
-			if not h then
-				h = {}
-				hooks[lib] = h
-				copies[#copies + 1] = { lib = lib, tag = (tag:gsub("^[-_ ]+", "")) }
-			end
-			for m, fn in pairs(METHODS) do
-				if type(lib[m]) == "function" and lib[m] ~= h[m] then
-					hooksecurefunc(lib, m, fn)
-					h[m], dirty, listDirty = lib[m], true, true
-				end
-			end
+-- A copy, hooked: its methods (a newer minor loading over a copy redefines them, dropping our hooks: hooked again,
+-- AddonPins.lua:55-56).
+local function Hook(lib, tag)
+	local h = hooks[lib]
+	if not h then
+		h = {}
+		hooks[lib] = h
+		copies[#copies + 1] = { lib = lib, tag = tag }
+	end
+	for m, fn in pairs(METHODS) do
+		if type(lib[m]) == "function" and lib[m] ~= h[m] then
+			hooksecurefunc(lib, m, fn)
+			h[m], dirty, listDirty = lib[m], true, true
 		end
 	end
+end
+
+-- Questie's own copy: since 12.8 a module of its loader (QuestieLoader._modules.HBDPins), no longer in LibStub. Read
+-- from the loader's table, not ImportModule (that makes an empty module when there's none).
+local function QuestiePins()
+	local loader = QuestieLoader
+	local modules = type(loader) == "table" and rawget(loader, "_modules")
+	local lib = type(modules) == "table" and rawget(modules, "HBDPins")
+	if type(lib) == "table" and type(lib.worldmapPinRegistry) == "table" and type(lib.AddWorldMapIconMap) == "function" then
+		return lib
+	end
+end
+
+-- Every copy in LibStub, and Questie's (neither has events: at login, when an addon loads, when our window opens).
+local function Scan()
+	if LibStub then -- (none: no addon brought one, spike-bugs E4)
+		for major, lib in LibStub:IterateLibraries() do
+			local tag = major:match(PINS_MAJOR)
+			if tag then Hook(lib, (tag:gsub("^[-_ ]+", ""))) end
+		end
+	end
+	local questie = QuestiePins()
+	if questie then Hook(questie, "Questie") end
 end
 Runtime.On("ADDON_LOADED", "game.addon pins: loaded", Scan)
 

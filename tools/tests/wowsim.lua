@@ -2494,7 +2494,7 @@ function Sim.HBDPins(major)
 	end
 
 	local function addMinimap(ref, icon, inst, x, y, uiMapID, inParent, floatOnEdge)
-		assert(ref ~= nil and type(icon) == "table" and icon.SetPoint, major .. ": a ref and an icon frame expected")
+		assert(ref ~= nil and type(icon) == "table" and icon.SetPoint, (major or "HBDPins") .. ": a ref and an icon frame expected")
 		pins.minimapPinRegistry[ref] = pins.minimapPinRegistry[ref] or {}
 		pins.minimapPinRegistry[ref][icon] = true
 		local t = pins.minimapPins[icon] or {}
@@ -2529,7 +2529,7 @@ function Sim.HBDPins(major)
 	end
 
 	local function addWorld(ref, icon, inst, x, y, uiMapID, showFlag, frameLevel)
-		assert(ref ~= nil and type(icon) == "table" and icon.SetPoint, major .. ": a ref and an icon frame expected")
+		assert(ref ~= nil and type(icon) == "table" and icon.SetPoint, (major or "HBDPins") .. ": a ref and an icon frame expected")
 		pins.worldmapPinRegistry[ref] = pins.worldmapPinRegistry[ref] or {}
 		pins.worldmapPinRegistry[ref][icon] = true
 		local t = pins.worldmapPins[icon] or {}
@@ -2556,7 +2556,7 @@ function Sim.HBDPins(major)
 	end
 
 	copies[#copies + 1] = pins
-	Sim.libs[major] = pins
+	if major then Sim.libs[major] = pins end -- (none: a copy outside LibStub, Questie 12.8's module)
 	return pins
 end
 
@@ -2576,11 +2576,17 @@ end
 Sim.hbdPins = Sim.HBDPins("HereBeDragons-Pins-2.0")
 Sim.hbdPins:AddMinimapIconMap("GatherMate2", Sim.gatherPin, 1429, 0.297, 0.546) -- a herb 40 yd north-east of you
 
-function Sim.LoadQuestie()
+-- module: as Questie 12.8 and later, its copy a module of its loader (QuestieLoader._modules.HBDPins), not in LibStub.
+function Sim.LoadQuestie(module)
 	if not Sim.questiePins then
 		HBD_PINS_WORLDMAP_SHOW_CURRENT = -1 -- (Questie's: its own map only)
-		Sim.libs["HereBeDragonsQuestie-2.0"] = {}
-		Sim.questiePins = Sim.HBDPins("HereBeDragonsQuestie-Pins-2.0")
+		if module then
+			Sim.questiePins = Sim.HBDPins(nil)
+			QuestieLoader = { _modules = { HBDPins = Sim.questiePins } }
+		else
+			Sim.libs["HereBeDragonsQuestie-2.0"] = {}
+			Sim.questiePins = Sim.HBDPins("HereBeDragonsQuestie-Pins-2.0")
+		end
 		Questie = { name = "Questie" }
 	end
 	return Sim.questiePins
