@@ -130,21 +130,24 @@ def test_gear():
     assert items(sub(root, "Tracking")) == [("checkbox", "Find Herbs"), ("checkbox", "Mailbox"), ("checkbox", "Innkeeper")]
     assert items(sub(root, "Other addons")) == [("checkbox", "All other addons"), ("divider", None), ("checkbox", "Questie")]  # (GatherMate2's minimap pins only: none)
     assert plain(sub(root, "Map").text) == "Map  7/9"  # (graveyards and points of interest off till turned on)
-    # Default zoom (the small map's alone): Auto, then a radio a Blizzard zoom it reaches; a pick goes there.
+    # Default zoom (the small map's alone): a radio a Blizzard zoom it reaches, the default (the widest) marked
+    # and chosen; a pick goes there. Settings' slider: those zooms alone.
     zooms = sub(root, "Default zoom")
     radios = [r for r in zooms["items"].values() if r.kind == "radio"]
     auto = UI.DefaultZoom()
-    assert plain(radios[0].text).startswith("Auto (") and radios[0].isSelected() and len(radios) > 2
-    n = len(radios) - 1  # (the closest it reaches; Auto's the widest)
-    assert auto == ns.Model.minimap.steps[1]
-    assert radios[n].onSelect() == refresh
+    _, steps, n, ai = UI.DefaultZoomIndex()
+    assert len(radios) == n and n >= 2 and ai == 1  # (auto: the widest, as Blizzard's own starts)
+    assert plain(radios[ai - 1].text).endswith("(auto)") and radios[ai - 1].isSelected() and auto == steps[ai]
+    pick = n if ai != n else 1  # (one not the default)
+    assert radios[pick - 1].onSelect() == refresh
     sim.Run(2)
-    steps = ns.Model.minimap.steps
-    assert UI.Feel.Get("zoom.default") == n and UI.DefaultZoom() == steps[n] != auto
-    assert abs(UI.Camera.cam.zoom - steps[n]) < 0.01 and radios[n].isSelected() and not radios[0].isSelected()
-    assert radios[0].onSelect() == refresh
+    assert UI.Feel.Get("zoom.default") == pick and UI.DefaultZoom() == steps[pick] != auto
+    assert abs(UI.Camera.cam.zoom - steps[pick]) < 0.01 and radios[pick - 1].isSelected() and not radios[ai - 1].isSelected()
+    assert radios[ai - 1].onSelect() == refresh
     sim.Run(2)
-    assert UI.Feel.Get("zoom.default") == 0 and UI.DefaultZoom() == auto
+    assert UI.Feel.Get("zoom.default") == ai and UI.DefaultZoom() == auto
+    k = UI.Feel.Entry("zoom.default")
+    assert k.range() == (1, n) and k.fmt(ai).endswith("(auto)")
 
     sim.Press("M")
     sim.Run(1)
