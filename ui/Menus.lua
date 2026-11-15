@@ -465,13 +465,11 @@ local function AddButtons(sub)
 end
 
 -- Default zoom (the small map's alone: Blizzard's Minimap's zooms are known only there): a radio a zoom that it reaches,
--- named by the yards across the window it shows, the widest first; the chosen one gone to at once (Motion.Reset).
+-- named by the yards across the window it shows, the widest first, the default's marked; the chosen one gone to at
+-- once (Motion.Reset). The same as Settings > General > Default zoom.
 local function AddDefaultZoom(root)
-	local now, s = UI.DefaultZoomIndex()
+	local now, s, n, auto = UI.DefaultZoomIndex()
 	if not now then return end
-	local w, h = UI.Window.Size()
-	local side = math.min(w, h)
-	local function Across(i) return math.floor(side / s[i] * ns.Atlas.TILE_YARDS / 10 + 0.5) * 10 .. " yd across" end -- /: never 0 (a step > 0)
 	local function Pick(v)
 		return function()
 			Run(function()
@@ -481,15 +479,10 @@ local function AddDefaultZoom(root)
 			return MenuResponse.Refresh
 		end
 	end
-	local chosen = function() return UI.Feel.Get("zoom.default") or 0 end
 	local sub = root:CreateButton(Mark("Interface\\Icons\\INV_Misc_Spyglass_02") .. "Default zoom")
-	local n = 0
-	for i = 1, #s do
-		if s[i] <= UI.Motion.MAX_ZOOM then n = i end
-	end
-	sub:CreateRadio("Auto (" .. Across(1) .. ")", function() return chosen() == 0 end, Pick(0))
 	for i = 1, n do
-		sub:CreateRadio(Across(i), function() return chosen() == i end, Pick(i))
+		sub:CreateRadio(UI.Across(s[i]) .. " yd across" .. (i == auto and " (auto)" or ""),
+			function() return (UI.DefaultZoomIndex()) == i end, Pick(i))
 	end
 end
 
