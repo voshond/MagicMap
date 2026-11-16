@@ -1945,7 +1945,7 @@ Sim.units = { player = { name = "Tester", class = "MAGE", level = 5 } }
 function UnitName(unit) local u = Sim.units[unit]; return u and u.name end
 function UnitIsGhost(unit) return unit == "player" and Sim.ghost or false end
 function UnitExists(unit) return Sim.units[unit] ~= nil end
-function UnitClass(unit) local u = Sim.units[unit]; if u then return u.class, u.class, 8 end end
+function UnitClass(unit) local u = Sim.units[unit]; if u then return u.class, u.class, u.classID or 8 end end
 function UnitGUID(unit) local u = Sim.units[unit]; return u and (u.guid or "Player-1-00000001") end
 function UnitIsPlayer(unit) local u = Sim.units[unit]; return u ~= nil and u.npc == nil end
 function UnitClassification(unit) return Sim.units[unit] and Sim.units[unit].classification or "normal" end
@@ -1955,6 +1955,9 @@ function UnitLevel(unit) local u = Sim.units[unit]; return u and (u.level or 1) 
 -- each in Sim.units with a tile position (col, row) on the player's instance.
 Sim.group = {}
 function GetNumGroupMembers() return #Sim.group > 0 and #Sim.group + 1 or 0 end
+function GetNumSubgroupMembers() return #Sim.group end
+-- A member's unit: offline = true, offline; quests = { [questID] = true }, the quests in its log.
+function UnitIsConnected(unit) local u = Sim.units[unit]; return u ~= nil and u.offline ~= true end
 function IsInRaid() return false end
 function UnitIsUnit(a, b) return a == b end
 function InCombatLockdown() return Sim.inCombat == true end
@@ -2225,6 +2228,7 @@ C_QuestLog = {
 	IsFailed = function(questID) local q = Sim.quests[questID]; return q ~= nil and q.failed == true end,
 	IsPushableQuest = function(questID) local q = Sim.quests[questID]; return q ~= nil and q.pushable == true end,
 	CanAbandonQuest = function(questID) return Sim.quests[questID] ~= nil end,
+	IsUnitOnQuest = function(unit, questID) local u = Sim.units[unit]; return u ~= nil and u.quests ~= nil and u.quests[questID] == true end,
 }
 -- The quest log's rows (C_QuestLog.GetInfo by index): a header a quest's `header` (else its zone, Elwynn
 -- Forest), in the order of their first quest by id, each followed by its quests by id.

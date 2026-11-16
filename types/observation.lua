@@ -30,6 +30,7 @@
 ---@field quests? MM.ObsQuests      on change: your quest log
 ---@field questlog? MM.ObsQuestLog  on change: your whole quest log, its headers and quests in order, read while the big map is up
 ---@field questdetails? MM.ObsQuestDetails|false  on change: the details of the quest the big map's quest log opened; false: none asked for, or it left the log
+---@field party? MM.ObsPartyMember[]  on change: your party's other members and which quests of your log each has, read while the big map is up; {}: in none
 ---@field places? MM.ObsPlace[]      on change: live places the game marks (Atlas has the static ones)
 ---@field corpse? MM.Pos|false       on change: false = no corpse known
 ---@field waypoint? MM.Pos|false     on change: the user waypoint (C_Map); false = none Model can place: none, or on a map Atlas hasn't (ADR 0001's LOCKED clarification, M3)
@@ -85,6 +86,17 @@
 ---@field level? integer
 ---@field dead? boolean
 ---@field pos? MM.Pos          nil: withheld (instances, another continent)
+
+---obs.party (game/parts/Party.lua): a party member (party1-4) and the quests of your log it has.
+---@class MM.ObsPartyMember
+---@field id string            the unit's GUID
+---@field name string
+---@field class? string        class token ("WARRIOR"), for its colour and icon
+---@field classID? integer     UnitClass's classID (a quest's classes mask: bit class - 1)
+---@field race? integer        UnitRace's raceID (a quest's races mask: bit race - 1)
+---@field level? integer       nil: too high to tell
+---@field online boolean       UnitIsConnected: offline, its quests can't be told
+---@field quests table<MM.QuestID, true>  the quests of obs.questlog it has (C_QuestLog.IsUnitOnQuest)
 
 ---@alias MM.ObjectiveType "monster"|"item"|"object"|"event"|"log"|"progressbar"|"reputation"|"other"
 

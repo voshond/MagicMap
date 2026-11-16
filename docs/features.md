@@ -67,6 +67,14 @@ narrow for both has none. The chevron at the map's top right puts it away (>) an
 Tracking > Quest log does. With **Tracked quests only** (on, same place), a quest you untrack (its box) leaves the
 map: its icon, its area and Questie's icons for it; the quest you follow always shows.
 
+**Your party on your quests.** In a party, each quest in the big map's log has a class icon for every other member
+beside its name: bright, they have it; faded, they haven't; faded red, they can't take it (under its required level,
+or not its race or class, by QuestieDB's row). Hovering the quest lists them by name in their class colours under
+Accepted, Missing and Ineligible, with why (the level it needs, wrong race or class, or offline: their log can't be
+read). Its details have the same in a Party section after its objectives. They follow the members' logs, levels and
+the roster (a second after a burst). Only your party (in a raid, your subgroup): the client tells which quests party
+members have, not the rest of a raid.
+
 ![The big map over the Barrens: subzone names, a quest's area and pins, and the line to it from the Crossroads](images/big-map-barrens-route.jpg)
 
 *The Barrens on the big map: the subzone names, a quest's objective area and pins, and the walking line

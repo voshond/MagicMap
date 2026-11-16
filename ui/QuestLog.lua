@@ -10,7 +10,10 @@
 --     Command), under it what it still needs (done: the log's completion line), and under that its rewards in a
 --     line: small icons of what you choose from and what you get (hovered: the item's tooltip, the tooltip Command,
 --     as the details'), the experience and the money
--- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin.
+--   * in a party, beside a quest's name, a class icon for each other member (ui/PartyQuest.lua): bright, they have it;
+--     faded, they don't; faded red, they can't take it
+-- Hovering a quest lights its area on the map and shows its pin's tooltip (ui/QuestTooltip.lua), where it has a pin,
+-- and under it who in your party has it, who hasn't and who can't (laid out again when the party's rev changes too).
 -- A click follows it (the follow Command: Blizzard's super-tracked quest) and flies the map there: to its pin, else
 -- its zone whole, and opens its details in the panel (ui/QuestDetails.lua), in the list's place. A right-click:
 -- Details, Track or Untrack, Follow or Stop following, Share, Abandon, Open in quest log.
@@ -22,6 +25,7 @@ local _, ns = ...
 local UI, Model, Atlas, Runtime = ns.UI, ns.Model, ns.Atlas, ns.Runtime
 local Window, Chrome, Camera, Motion, Menus = UI.Window, UI.Chrome, UI.Camera, UI.Motion, UI.Menus
 local Command = ns.Game.Command
+local PartyQuest = UI.PartyQuest
 
 local WIDTH = 300
 local MIN_MAP = 400 -- px of map it leaves at least: a narrower big window has no quest log
@@ -34,6 +38,7 @@ local LINE_X = 34 -- its objectives', past the dash
 local CHECK = 14
 local ICON = 16
 local REWARD, REWARD_GAP, REWARD_H = 16, 3, 20 -- a reward's icon, between them, its line
+local MEMBER, MEMBER_GAP, TIP_MEMBER = 13, 2, 14 -- a party member's icon beside a quest's name, between them; in its tooltip
 local WHEEL = 3 * TITLE_H -- px a notch
 local GOLD, WHITE, RED = { 1, 0.82, 0 }, { 1, 1, 1 }, { 1, 0.13, 0.13 }
 local XP_COLOR = { 0.6, 0.6, 1 }
@@ -215,10 +220,16 @@ local function Entered(row)
 	if not r or r.header then return end
 	row.hl:Show()
 	local e = Pin(r.id)
-	if not e then return end
-	UI.Areas.Hover(e)
+	local party = PartyQuest.Any() and PartyQuest.Lines(r.id, TIP_MEMBER) or {}
+	if not e and #party == 0 then return end
 	GameTooltip:SetOwner(row, "ANCHOR_LEFT")
-	UI.QuestTooltip.Fill(GameTooltip, e)
+	if e then
+		UI.Areas.Hover(e)
+		UI.QuestTooltip.Fill(GameTooltip, e)
+	else
+		GameTooltip:AddLine(r.title, r.color[1], r.color[2], r.color[3])
+	end
+	for _, line in ipairs(party) do GameTooltip:AddLine(line, WHITE[1], WHITE[2], WHITE[3]) end
 	GameTooltip:Show()
 end
 
@@ -279,6 +290,7 @@ local function NewRow()
 	row.check = check
 	row.lines = {}
 	row.rewards = {}
+	row.members = {}
 	row.xp = row:CreateFontString(nil, "ARTWORK")
 	row.xp:SetFontObject(GameFontHighlightSmall)
 	row.xp:SetJustifyH("LEFT")
@@ -370,6 +382,30 @@ local function Rewards(row, r, y)
 	return n
 end
 
+-- Quest r's party beside its name, right to left from its box (accepted first, nearest the name), its name short of them.
+local function Members(row, r)
+	local on, n = Model.PartyOnQuest(r.id), 0
+	for k = #PartyQuest.GROUPS, 1, -1 do
+		local g = PartyQuest.GROUPS[k]
+		local list = on[g.key]
+		for i = #list, 1, -1 do
+			n = n + 1
+			local t = row.members[n]
+			if not t then
+				t = row:CreateTexture(nil, "ARTWORK")
+				t:SetSize(MEMBER, MEMBER)
+				row.members[n] = t
+			end
+			t:ClearAllPoints()
+			t:SetPoint("TOPRIGHT", row.check, "TOPLEFT", -4 - (n - 1) * (MEMBER + MEMBER_GAP), 0)
+			PartyQuest.Icon(t, list[i], g)
+			t:Show()
+		end
+	end
+	for k = n + 1, #row.members do row.members[k]:Hide() end
+	row.text:SetPoint("TOPRIGHT", row.check, "TOPLEFT", -4 - n * (MEMBER + MEMBER_GAP), 0)
+end
+
 local function HasRewards(w)
 	return w and (#w.choices > 0 or #w.items > 0 or w.money > 0 or w.xp > 0)
 end
@@ -390,6 +426,7 @@ local function Header(row, r)
 	row.text:SetTextColor(WHITE[1], WHITE[2], WHITE[3])
 	row.check:Hide()
 	row.glow:Hide()
+	for _, t in ipairs(row.members) do t:Hide() end
 	row.xp:Hide()
 	row.money:Hide()
 	for _, b in ipairs(row.rewards) do b:Hide() end
@@ -410,6 +447,8 @@ local function Quest(row, r)
 	row.text:ClearAllPoints()
 	row.text:SetPoint("TOPLEFT", TEXT_X, -2)
 	row.text:SetPoint("TOPRIGHT", row.check, "TOPLEFT", -4, 0)
+	for _, t in ipairs(row.members) do t:Hide() end
+	row.party = nil -- (its icons painted on the next frame: Paint)
 	row.text:SetText(name)
 	row.text:SetTextColor(c[1], c[2], c[3])
 	row.check:Show()
@@ -435,12 +474,13 @@ local function Quest(row, r)
 	return h
 end
 
-local laidRev -- the Model.questlog rev laid out
+local laidRev, laidParty -- the Model.questlog rev laid out, and the party's painted (PartyQuest.Rev)
 -- Each row set again only where it shows something else, or the same somewhere else (Model keeps a quest's row while
--- it's the same): a count going up touches its own row, those under it only move.
+-- it's the same): a count going up touches its own row, those under it only move. Its party's icons come on the next
+-- frame (Paint): a whole new log fills the frame's budget alone.
 function Layout()
 	local log = Model.questlog
-	laidRev = log and log.rev
+	laidRev, laidParty = log and log.rev, nil
 	local n, y, folded = 0, 0, false
 	for _, r in ipairs(log or {}) do
 		if r.header then folded = Collapsed()[r.title] == true end
@@ -464,7 +504,7 @@ function Layout()
 		end
 	end
 	for i = n + 1, #rows do
-		rows[i].data, rows[i].top = nil, nil
+		rows[i].data, rows[i].top, rows[i].party = nil, nil, nil
 		rows[i]:Hide()
 	end
 	content:SetHeight(math.max(1, y))
@@ -475,6 +515,18 @@ function Layout()
 	count:SetTextColor(c[1], c[2], c[3])
 end
 QuestLog.Layout = Layout
+
+-- The party's icons on each quest shown whose party isn't the one painted.
+local function Paint()
+	laidParty = PartyQuest.Rev()
+	for _, row in ipairs(rows) do
+		local r = row.data
+		if r and not r.header and row.party ~= laidParty then
+			row.party = laidParty
+			Members(row, r)
+		end
+	end
+end
 
 ---------------------------------------------------------------------------
 -- Shown on the big map once it's grown (and with it the room on the map's right), laid out as the log changes
@@ -521,7 +573,11 @@ Runtime.Step("ui", "map: quest log", function()
 	end
 	if not want then return end
 	local log = Model.questlog
-	if (log and log.rev) ~= laidRev then Layout() end
+	if (log and log.rev) ~= laidRev then
+		Layout()
+	elseif PartyQuest.Rev() ~= laidParty then
+		Paint()
+	end
 end, { shownOnly = frame, budgetMs = Runtime.FRAME_MS }) -- (the first layout makes every row's widgets: the frame's budget)
 -- Hidden while big comes back small (ui/BigMap.lua): the panel and its chevron go with it, not shown again with the window.
 frame:HookScript("OnHide", Runtime.Wrap("map: quest log hidden", function()

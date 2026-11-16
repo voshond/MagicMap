@@ -3,16 +3,17 @@
 -- read for the quest we name with the questdetails Command), laid out again only when its rev changes:
 --   * a band: a Back button (the list again, its scroll kept) and the quest's title
 --   * a scroll: the title, "Quest Objectives" (what it asks and each objective, done ones greyed and ticked),
---     "Description", and "Rewards": what you choose one of, what you receive (an icon with its count, its name in its quality's
+--     in a party "Party" (who has it, who hasn't, who can't and why: ui/PartyQuest.lua), "Description", and "Rewards": what you choose one of, what you receive (an icon with its count, its name in its quality's
 --     colour, two a row as QuestInfoRewardsFrame), money and experience; hovering a reward shows the item's tooltip (the tooltip Command)
 --   * a bar: Abandon, Share (while the quest can be shared: you're in a group), Track or Untrack
--- Opened by a click on a quest in the list (ui/QuestLog.lua), shown once Game has read it; back to the list on Back, when the
--- quest leaves the log, or the panel is put away.
+-- Opened by a click on a quest in the list (ui/QuestLog.lua), shown once Game has read it, laid out again when the party
+-- changes too; back to the list on Back, when the quest leaves the log, or the panel is put away.
 
 local _, ns = ...
 local UI, Model, Runtime = ns.UI, ns.Model, ns.Runtime
 local QuestLog, Window = UI.QuestLog, UI.Window
 local Command = ns.Game.Command
+local PartyQuest = UI.PartyQuest
 
 local panel = QuestLog.panel
 local WIDTH, HEAD, PAD, Art, Has = QuestLog.WIDTH, QuestLog.HEAD, QuestLog.PAD, QuestLog.Art, QuestLog.Has
@@ -23,6 +24,7 @@ local TEXT_W = WIDTH - 2 * PAD
 local GAP, PARA = 6, 3 -- px under a text, between a quest's paragraphs
 local ICON, CELL_H, COL_W = 36, 42, 140 -- a reward: its icon, its cell, two a row
 local WHEEL = 54
+local MEMBER = 14 -- a party member's class icon, in its line
 local GOLD, BODY, WHITE = { 1, 0.82, 0 }, { 0.93, 0.89, 0.78 }, { 1, 1, 1 }
 local DONE_GREY = 0.6
 local DIVIDER, BACK_ATLAS = "QuestLog-frame-devider", "common-icon-backarrow"
@@ -204,11 +206,17 @@ local function Rewards(d)
 	if d.xp > 0 then Text("Experience: " .. d.xp, GameFontHighlight, WHITE) end
 end
 
+local function Party(d)
+	if not PartyQuest.Any() then return end
+	Heading("Party")
+	for _, line in ipairs(PartyQuest.Lines(d.id, MEMBER)) do Text(line, GameFontHighlight, WHITE) end
+end
+
 local opened, seen -- the quest asked for; Game's read of it came
-local laidRev, laidId -- the Model.questdetails rev laid out, and its quest
+local laidRev, laidId, laidParty -- the Model.questdetails rev laid out, its quest, and the party's rev (PartyQuest.Rev)
 
 local function Fill(d)
-	laidRev = d.rev
+	laidRev, laidParty = d.rev, PartyQuest.Rev()
 	y, textN, itemN = PAD, 0, 0
 	band:SetText(d.title)
 	Text(d.title, GameFontNormalLarge, GOLD)
@@ -223,6 +231,7 @@ local function Fill(d)
 			end
 		end
 	end
+	Party(d)
 	if d.text ~= "" then
 		Heading("Description")
 		Paragraphs(d.text)
@@ -272,7 +281,7 @@ Runtime.Step("ui", "map: quest details", function()
 		return
 	end
 	seen = true
-	if d.rev ~= laidRev then Fill(d) end
+	if d.rev ~= laidRev or PartyQuest.Rev() ~= laidParty then Fill(d) end
 	if not details:IsShown() then
 		QuestLog.SetListShown(false)
 		details:Show()

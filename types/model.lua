@@ -125,6 +125,22 @@
 ---@class MM.ModelQuestDetails : MM.ObsQuestDetails
 ---@field rev integer
 
+---Model.party: obs.party's members with rev.
+---@class MM.ModelParty
+---@field rev integer
+---@field [integer] MM.ObsPartyMember
+
+---Model.PartyOnQuest(id): the party by whether it has quest id, each in the party's order.
+---@class MM.PartyOnQuest
+---@field accepted MM.PartyQuestMember[]    have it
+---@field missing MM.PartyQuestMember[]     could take it but haven't (why "offline": can't tell)
+---@field ineligible MM.PartyQuestMember[]  can't take it: its required level, race or class (Atlas's row)
+
+---@class MM.PartyQuestMember
+---@field name string
+---@field class? string        class token
+---@field why? string          "level 4, needs 5", "wrong race", "wrong class" or "offline"
+
 ---@class MM.ModelRead
 ---@field you MM.ModelYou
 ---@field hooked MM.HookedInput[]  this frame's hooked keys, handed on from obs.hooked unchanged (ADR 0003)
@@ -148,6 +164,7 @@
 ---@field buttons MM.ObsButton[]   obs.buttons, the last handed ({} until known): the gear's Minimap buttons submenu
 ---@field questlog? MM.ObsQuestLog obs.questlog's rows, each quest with its difficulty colour (color), and rev (one more each change): the big map's quest log (ui/QuestLog.lua); nil until first read
 ---@field questdetails? MM.ModelQuestDetails|false obs.questdetails, the last handed, with rev (one more each change): the opened quest's details in the big map's quest log (ui/QuestDetails.lua); false: none or gone; nil until first read
+---@field party? MM.ModelParty     obs.party's members with rev (one more each change): who in your party has which quest (ui/PartyQuest.lua); nil until first read
 ---@field clock? MM.ObsClock       obs.clock, the last handed (nil until known): the title's time and day or night
 ---@field SAVED MM.SavedSpec       Model's saved part's spec (types/saved.lua MM.SavedModel)
 local Model = {}
@@ -167,6 +184,11 @@ function Model.Target() end
 ---The way to the target: points in tile space, you first, the target last; nil while not found.
 ---@return MM.Route|nil
 function Model.Route() end
+
+---Who in your party has quest id, who could take it but hasn't, and who can't (model/Party.lua); all empty out of a party.
+---@param id MM.QuestID
+---@return MM.PartyOnQuest
+function Model.PartyOnQuest(id) end
 
 ---Game's loader for Model's saved part (Game.Load("Model", Model.Load, Model.SAVED)),
 ---once SavedVariables are loaded. Model keeps the table and mutates it in place.

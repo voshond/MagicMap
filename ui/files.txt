@@ -30,6 +30,7 @@ ui/QuestTooltip.lua
 ui/Areas.lua
 ui/Quests.lua
 ui/ZoneInfo.lua
+ui/PartyQuest.lua
 ui/QuestLog.lua
 ui/QuestDetails.lua
 ui/Sockets.lua
