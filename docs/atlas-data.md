@@ -137,13 +137,29 @@ docs/decisions/0011-ai-map-art.md.
 ### Data/Walk.lua — `ns.Data.Walk` (ADT MCVT heights, MH2O liquids)
 `[inst] = { [tileKey] = cells }`, open-world maps with ≥ 20 terrain tiles.
 - cells: the tile's 256 chunks (index iy * 16 + ix) as letters `'a' + value`, each
-  optionally followed by a run length. value = class (0 blocked: mostly too steep,
-  1 land, 2 water: mostly deeper than swimming depth, 3 magma/slime) + 4 (can cross
-  into the chunk east) + 8 (south). Terrain only: buildings and bridges (WMOs) read as
+  optionally followed by a run length. value = class (0 blocked: no walkable part of 4+
+  4-yd squares, 1 land, 2 water: mostly deeper than swimming depth, 3 magma/slime; from
+  the chunk's main walkable part) + 4 (its main part meets the east chunk's main part)
+  + 8 (south). A square is steep past 60° by the plane through its corners (a stand-in
+  for the game's 50° per face plus its 2-yd step). Terrain only: buildings and bridges (WMOs) read as
   what's under them.
 - Global chunk (gc, gr) = tile (col, row) * 16. `Atlas.Walk.Cell(inst, gc, gr)` → class,
   east, south; `Atlas.Walk.CanMove(inst, gc, gr, dx, dy)` (8 ways);
   `Atlas.Walk.Snap(inst, gc, gr)` → the nearest standable chunk within 4.
+- `Atlas.Route.Find(inst, c1, r1, sc, sr, gc, gr, c2, r2, yield, trace)` (atlas/Route.lua): the walk from one
+  place to another over these chunks (A*, straightened by line of sight, corners rounded), from the chunks Snap
+  gives each end; model/Route.lua runs it in a Runtime.Job and keeps it up to date, the demo's `/api/route` whole.
+
+### Data/WalkRegions.lua — `ns.Data.WalkRegions`, `ns.Data.WalkLinks` (Data/Walk.lua, tools/walk_links.json)
+Made by tools/gen_walk_regions.py, no game data needed: regenerate after Data/Walk.lua or the links change
+(tools/tests/test_generators.py fails while it's stale).
+- `WalkLinks[inst] = { { ac, ar, bc, br, cost, name }, ... }`: hand-placed links (tunnels, bridges, lifts: the
+  terrain grid can't see buildings) between two chunks, both ways, cost in chunks walked (at least straight).
+- `WalkRegions[inst][tileKey]`: the tile's 256 chunks' regions (chunks a walk joins up, counting the links;
+  1 the map's biggest, 0 nowhere to stand): a number for the whole tile, else runs `"<region>x<count>"` (or a
+  lone region) between commas.
+- `Atlas.Walk.Region(inst, gc, gr)`, `Atlas.Walk.Links(inst)`. Atlas.Route.Find doesn't search between two
+  regions: the nearest chunk of yours within reach (partial), or no way at once; and it walks the links.
 
 ### Data/Places.lua — `ns.Data.Places` (DB2)
 - `flight[nodeID] = { name, faction, inst, col, row, areaID }` (TaxiNodes)

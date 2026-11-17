@@ -1515,6 +1515,40 @@ TimeManagerClockButton:SetScript("OnClick", function() Opened("clock") end)
 AddonCompartmentFrame = CreateFrame("Frame", "AddonCompartmentFrame", MinimapCluster)
 AddonCompartmentFrame.registeredAddons = { { text = "MagicMap", icon = "Interface\\Icons\\INV_Misc_Map_01",
 	func = function(_, input) MagicMap_OnAddonCompartmentClick("MagicMap", input.buttonName) end } }
+-- Blizzard's indicators (Forever's MinimapCluster.IndicatorFrame): its MailFrame, shown while there's mail.
+local indicators = CreateFrame("Frame", nil, MinimapCluster)
+indicators:SetSize(33, 33)
+indicators:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 24, -37)
+indicators.MailFrame = CreateFrame("Frame", nil, indicators)
+indicators.MailFrame:SetSize(33, 33)
+indicators.MailFrame:SetPoint("TOPLEFT")
+MinimapCluster.IndicatorFrame = indicators
+
+-- LibDataBroker-1.1 and LibDBIcon-1.0 as another addon (HidingBar...) brings both: Sim.LoadLDB(), before login.
+-- LibDBIcon's Register makes the button on the Minimap (LibDBIcon10_<name>), its click the launcher's OnClick.
+function Sim.LoadLDB()
+	local ldb = { objects = {} }
+	function ldb:NewDataObject(name, obj)
+		if self.objects[name] then return nil end
+		self.objects[name] = obj
+		return obj
+	end
+	local dbi = { objects = {} }
+	function dbi:IsRegistered(name) return self.objects[name] ~= nil end
+	function dbi:Register(name, obj, db)
+		local b = CreateFrame("Button", "LibDBIcon10_" .. name, Minimap)
+		b:SetSize(31, 31)
+		b:SetPoint("CENTER", Minimap, "CENTER", 80, 0)
+		b.dataObject, b.db = obj, db
+		b:SetScript("OnClick", function(self, button) obj.OnClick(self, button) end)
+		b:SetShown(not db.hide)
+		self.objects[name] = b
+	end
+	function dbi:Show(name) self.objects[name]:Show() end
+	function dbi:Hide(name) self.objects[name]:Hide() end
+	Sim.libs["LibDataBroker-1.1"], Sim.libs["LibDBIcon-1.0"] = ldb, dbi
+	return ldb, dbi
+end
 
 -- The server's time (GetGameTime: Sim.gameTime, hour and minute) and whether it's day (Forever's C_DateAndTime).
 Sim.gameTime = { 14, 5 }
@@ -2414,7 +2448,7 @@ function ButtonFrameTemplate_HideButtonBar(f) end
 -- radius, turned under Rotate Minimap, hidden past 0.9 of it unless
 -- floatOnEdge; re-placed at the end of a frame when you, the radius or that
 -- frame changed, while that frame is visible (HereBeDragons-Pins-2.0.lua:539). The shared copy holds GatherMate's pin (Sim.gatherPin);
--- Questie's renamed copy comes with Sim.LoadQuestie(), as if Questie loaded later.
+-- Questie's copy (its loader's module, not LibStub's) comes with Sim.LoadQuestie(), as if Questie loaded later.
 ---------------------------------------------------------------------------
 
 HBD_PINS_WORLDMAP_SHOW_PARENT, HBD_PINS_WORLDMAP_SHOW_CONTINENT, HBD_PINS_WORLDMAP_SHOW_WORLD = 1, 2, 3
@@ -2533,7 +2567,8 @@ function Sim.HBDPins(major)
 	end
 
 	local function addWorld(ref, icon, inst, x, y, uiMapID, showFlag, frameLevel)
-		assert(ref ~= nil and type(icon) == "table" and icon.SetPoint, (major or "HBDPins") .. ": a ref and an icon frame expected")
+		assert(ref ~= nil and type(icon) == "table" and icon.SetPoint,
+			(major or "HBDPins") .. ": a ref and an icon frame expected")
 		pins.worldmapPinRegistry[ref] = pins.worldmapPinRegistry[ref] or {}
 		pins.worldmapPinRegistry[ref][icon] = true
 		local t = pins.worldmapPins[icon] or {}
@@ -2560,7 +2595,7 @@ function Sim.HBDPins(major)
 	end
 
 	copies[#copies + 1] = pins
-	if major then Sim.libs[major] = pins end -- (none: a copy outside LibStub, Questie 12.8's module)
+	if major then Sim.libs[major] = pins end -- (none: Questie's, a module of its loader)
 	return pins
 end
 
@@ -2580,17 +2615,11 @@ end
 Sim.hbdPins = Sim.HBDPins("HereBeDragons-Pins-2.0")
 Sim.hbdPins:AddMinimapIconMap("GatherMate2", Sim.gatherPin, 1429, 0.297, 0.546) -- a herb 40 yd north-east of you
 
--- module: as Questie 12.8 and later, its copy a module of its loader (QuestieLoader._modules.HBDPins), not in LibStub.
-function Sim.LoadQuestie(module)
+function Sim.LoadQuestie()
 	if not Sim.questiePins then
 		HBD_PINS_WORLDMAP_SHOW_CURRENT = -1 -- (Questie's: its own map only)
-		if module then
-			Sim.questiePins = Sim.HBDPins(nil)
-			QuestieLoader = { _modules = { HBDPins = Sim.questiePins } }
-		else
-			Sim.libs["HereBeDragonsQuestie-2.0"] = {}
-			Sim.questiePins = Sim.HBDPins("HereBeDragonsQuestie-Pins-2.0")
-		end
+		Sim.questiePins = Sim.HBDPins(nil) -- (Questie 12.8: not in LibStub, QuestieLoader's module "HBDPins")
+		QuestieLoader = { _modules = { HBDPins = Sim.questiePins } }
 		Questie = { name = "Questie" }
 	end
 	return Sim.questiePins

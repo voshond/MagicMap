@@ -6,6 +6,7 @@ Data/Sea.lua
 Data/Repaint.lua
 Data/Anchors.lua
 Data/Walk.lua
+Data/WalkRegions.lua
 Data/UiMaps.lua
 Data/Areas.lua
 Data/AreaGrid.lua
@@ -22,6 +23,7 @@ atlas/Coords.lua
 atlas/Tiles.lua
 atlas/Anchors.lua
 atlas/Walk.lua
+atlas/Route.lua
 atlas/UiMaps.lua
 atlas/Areas.lua
 atlas/Places.lua

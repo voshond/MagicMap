@@ -57,6 +57,8 @@
 ---@class MM.ViewChrome
 ---@field rimArrows? boolean     its arrows at the rim toward tracked things out of view; false: hidden (our edge arrow stands in)
 ---@field questRing? boolean     its quest / dig-site / bonus-objective rings at the rim (Set*BlobRingScalar); false: hidden
+---@field indicators? MM.Frame  where Blizzard's mail and crafting-order indicators (MinimapCluster.IndicatorFrame) hang, its TOPRIGHT
+---                              theirs, while the takeover hides their cluster
 
 ---The same table every frame is fine (UI updates it in place): Game copies the numbers. OPEN (telemetry only).
 ---@class MM.ViewCamera
@@ -77,7 +79,7 @@
 ---Layers Game acts on:
 ---  "flight", "quests", "pois"  ours are drawn: Game turns Blizzard's tracking of the same off (and back on when not)
 ---  "addon:" .. MM.ObsAddon.key  borrow that addon's pins onto the sockets
----@alias MM.GameLayer "flight"|"quests"|"pois"|string
+---@alias MM.GameLayer "flight"|"quests"|"offers"|"pois"|string
 
 ---Frames UI owns and Game places other addons' pins on. Game hosts the pins on a 1x1
 ---frame of its own at the socket frame's TOPLEFT (the same coordinates), which it may fade

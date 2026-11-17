@@ -586,7 +586,7 @@ frame:HookScript("OnHide", Runtime.Wrap("map: quest log hidden", function()
 	Chrome.SetSide(0)
 end))
 
-UI.Feel.Add("tracking", "Quest log", {
+UI.Feel.Add("quests", "Quest log", {
 	{ key = "questlog.sidebar", kind = "toggle", label = "Quest log on the big map", default = true,
 		apply = function(v) QuestLog.on = v end,
 		tip = "Your quests down the big map's right side, as Blizzard's world map lists them: click one to follow it and fly there, right-click for more." },

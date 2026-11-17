@@ -114,7 +114,7 @@ grip:SetAlpha(0.8)
 grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
 grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
 grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-grip:SetScript("OnMouseDown", Runtime.Wrap("map: resize", function() frame:StartSizing("BOTTOMRIGHT") end))
+grip:SetScript("OnMouseDown", Runtime.Wrap("map: resize", function() if not UI.Window.locked then frame:StartSizing("BOTTOMRIGHT") end end))
 grip:SetScript("OnMouseUp", Runtime.Wrap("map: resized", function()
 	frame:StopMovingOrSizing()
 	Window.Moved()
@@ -146,6 +146,14 @@ function Chrome.Unblock()
 	Unblock(overlay)
 end
 Chrome.Unblock()
+
+-- Where Blizzard's mail and crafting-order indicators (MinimapCluster.IndicatorFrame) hang while the takeover hides
+-- their cluster (#23: View.chrome.indicators, game/Chrome.lua): the map's top right, as on Blizzard's minimap; on the
+-- pills' frame, so at full alpha whatever Buttons at rest.
+local indicators = CreateFrame("Frame", nil, overlay)
+indicators:SetSize(1, 1)
+indicators:SetPoint("TOPRIGHT", view, "TOPRIGHT", -3, -3)
+Chrome.indicators = indicators
 
 -- Everything of the template but its border's art goes; the map stops where that art begins.
 local KEEP = { [view] = true, [band] = true, [grip] = true, [borders.metal] = true, [borders.tooltip] = true,

@@ -154,6 +154,9 @@ async function loadWorld(camera) {
   namesAfter = performance.now() + 1500; // (labels.js: until the first pins)
   walk = null;
   profilePoints = [];
+  routePoints = [];
+  routeGot = null;
+  renderPathPanel();
   closeSheets();
   closePlace();
   MAP_NAME = m.name;
@@ -275,7 +278,7 @@ async function restoreView() {
   layerOn.clear();
   restored.layers.forEach((l) => layerOn.add(l));
   pinsOn = restored.pins;
-  walkOn = state.tools.has("walk");
+  pathToggled();
   state.desiredMode = restored.mode;
   const intro = restored.flyover && !restored.camera;
   let camera = restored.camera;
@@ -376,7 +379,13 @@ for (const input of $("advanced").querySelectorAll("input[data-tool]"))
       } catch (e) {
         notice(e.message);
       }
-    walkOn = state.tools.has("walk");
+    if (id === "path") {
+      pathToggled();
+      if (input.checked) {
+        closeSheets();
+        notice("Pathing debug: tap where to start, then where to go. Layers are in the panel.");
+      }
+    }
     draw();
     settled();
   });
