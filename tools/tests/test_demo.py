@@ -33,3 +33,28 @@ def test_find_npc_and_quest_sources():
     assert spawns["inst"] == server.WORLD and server.to_real(*spawns["points"][0])[0] == 0
     meat = next(o for o in server.quest({"id": "33"})["objectives"] if o["kind"] == "item")
     assert {"kind": "npc", "id": 299, "name": "Young Wolf"} in meat["sources"]
+
+
+def test_route_tool():
+    """/api/route runs the addon's own search: Goldshire to Lakeshire is found, a little longer than straight, its
+    trace on the world; the two continents never share a route."""
+    dx, dy = server.OFFSET[0]
+    r = server.route({"c0": str(31.95 + dx), "r0": str(49.75 + dy), "c1": str(36.09 + dx), "r1": str(49.28 + dy)})
+    assert r["found"] and not r["partial"] and r["map"] == "Eastern Kingdoms"
+    assert 1 < r["yards"] / r["straight"] < 1.3 and r["nodes"] == len(r["closed"]) / 2
+    assert r["way"][0] == [31.95 + dx, 49.75 + dy] and r["raw"][:2] == r["snapped"][0]
+    assert "error" in server.route({"c0": "40", "r0": "30", "c1": str(32 + dx), "r1": str(49 + dy)})
+
+
+def test_route_regions_and_links():
+    """Dun Morogh's only ways out are tunnels (tools/walk_links.json): Kharanos to Thelsamar goes through one. Into
+    Teldrassil (its own region: boats, not a walk) no search runs: the nearest place in yours, at once."""
+    dx, dy = server.OFFSET[0]
+    r = server.route({"c0": str(32.91 + dx), "r0": str(42.41 + dy), "c1": str(36.85 + dx), "r1": str(42.95 + dy)})
+    assert r["found"] and not r["partial"] and r["regions"] is None
+    A = server.Atlas
+    anchors = A.Anchors(1)
+    dol = next(anchors[i] for i in range(1, len(anchors) + 1) if A.Area(anchors[i][1]) and A.Area(anchors[i][1]).name == "Dolanaar")
+    r = server.route({"c0": "29.0", "r0": "16.0", "c1": str(dol[2]), "r1": str(dol[3])})
+    assert r["regions"] and r["regions"][0] != r["regions"][1] and (r["partial"] or not r["found"])
+    assert r["nodes"] < 20000

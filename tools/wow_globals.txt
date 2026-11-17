@@ -32,7 +32,7 @@ MenuResponse MenuUtil LEVEL RAID_CLASS_COLORS
 # The client's colour picker (the settings window's Custom…: ui/Feel.lua)
 ColorPickerFrame
 # Input state
-GetCursorPosition IsAltKeyDown IsControlKeyDown IsMouseButtonDown IsShiftKeyDown
+GetCursorPosition GetMouseFoci IsAltKeyDown IsControlKeyDown IsMouseButtonDown IsShiftKeyDown
 
 [game]
 # Errors and hooks
@@ -68,5 +68,3 @@ Constants GetNumQuestLogChoices GetNumQuestLogRewards GetQuestLogChoiceInfo GetQ
 GetQuestLogRewardInfo GetQuestLogRewardMoney GetQuestLogRewardXP IsInGroup ITEM_QUALITY_COLORS
 GetQuestLogCompletionText GetQuestUiMapID QuestLogPushQuest QuestMapQuestOptions_AbandonQuest
 QUEST_WATCH_QUEST_READY OBJECTIVES_WATCH_TOO_MANY UIErrorsFrame
-# /mm hover (game/AddonPins.lua): what has the mouse
-GetMouseFoci
