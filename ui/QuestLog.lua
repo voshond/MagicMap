@@ -561,13 +561,18 @@ toggle:SetScript("OnClick", Runtime.Wrap("map: quest log toggle", function()
 end, Runtime.FRAME_MS))
 UI.Controls.Tip(toggle, function() return QuestLog.on and "Hide quest log" or "Show quest log" end)
 
+local panelShown, toggleShown = false, false -- as last set here (only this file shows or hides them)
 Runtime.Step("ui", "map: quest log", function()
 	local big = UI.BigMap
-	local grown = big.big == true and (panel:IsShown() or not big.Tweening()) and Fits(frame:GetWidth())
+	local grown = big.big == true and (panelShown or not big.Tweening()) and Fits(frame:GetWidth())
 	local want = grown and QuestLog.on
-	if toggle:IsShown() ~= grown then toggle:SetShown(grown) end
+	if toggleShown ~= grown then
+		toggleShown = grown
+		toggle:SetShown(grown)
+	end
 	if toggle.on ~= QuestLog.on then ToggleLook() end
-	if panel:IsShown() ~= want then
+	if panelShown ~= want then
+		panelShown = want
 		panel:SetShown(want)
 		Chrome.SetSide(want and WIDTH or 0)
 	end
@@ -583,6 +588,7 @@ end, { shownOnly = frame, budgetMs = Runtime.FRAME_MS }) -- (the first layout ma
 frame:HookScript("OnHide", Runtime.Wrap("map: quest log hidden", function()
 	panel:Hide()
 	toggle:Hide()
+	panelShown, toggleShown = false, false
 	Chrome.SetSide(0)
 end))
 
