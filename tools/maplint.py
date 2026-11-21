@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Score the map's quality and list its issues (docs/hardening-plan.md M1-M5), to hill-climb and ratchet it.
+"""Score the map's quality and list its issues, to hill-climb and ratchet it.
 
 The primary output is an issues file (--issues FILE, JSON; schema below; the reviewed one is docs/map-issues.json,
 its marks docs/map-review.json): one issue per thing to look at, each with a stable id, so marks survive reruns. Its summary holds
@@ -110,7 +110,7 @@ TOL = 1e-9
 # Water: dark and green to blue (R low, G at least R, B over WATER_BG G), or nearly black. gen_base.py's test
 # with B > 0.5 G missed the dark green-tinted sea along coasts (~(17,32,16)); this one, against the ADT liquids
 # (MH2O) of 70532's drawn tiles, finds 83% of water chunks in EK (was 70%; Kalimdor 79%, was 63%) and calls 20 of
-# 87k dry chunks water (was 50). The unfinished filler (hardening-plan M2: R over 50) stays land.
+# 87k dry chunks water (was 50). The unfinished filler (R over 50) stays land.
 WATER_R, WATER_BG, BLACK = 24, 0.3, 14
 
 
@@ -229,8 +229,9 @@ class Data:
             b = D.Base[inst] if D.Base else None
             self.base[inst] = {k: b[k] for k in ("file", "c0", "r0", "c1", "r1", "px", "w", "h")} if b else None
             walk = np.full((GRID, GRID), -1, np.int16)  # Walk's value: class (& 3) + 4 east + 8 south; -1 none
-            for k, cells in D.Walk[inst].items():
-                walk[tile_slice(int(k))] = np.array(runs(cells), np.int16).reshape(CH, CH)
+            for k, cells in D.Walk[inst].items():  # upper case (a complex chunk): class = ord - 65, runs()' 26 + class
+                vals = [v - 26 if v >= 26 else v for v in runs(cells)]
+                walk[tile_slice(int(k))] = np.array(vals, np.int16).reshape(CH, CH)
             self.walk[inst] = walk
             zg = np.zeros((GRID, GRID), np.int32)
             for k, enc in D.AreaGrid[inst].items():

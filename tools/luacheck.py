@@ -81,7 +81,7 @@ NS_RULES = {
     "model": ({"Model", "Atlas", "Runtime"}, {}),
     "ui": ({"UI", "Atlas", "Runtime"}, {"Game": {"Command"},
                                        "Model": {"Known", "Target", "Route", "you", "hooked", "minimap", "addons", "levels", "build",
-                                                 "waypointSet", "explored", "exploredCells", "interior", "tracking", "skills", "buttons", "clock", "questlog", "questdetails", "party", "PartyOnQuest", "ping", "Focus", "QuestColor"}}),  # types/model.lua, focus.lua
+                                                 "waypointSet", "explored", "exploredCells", "interior", "tracking", "skills", "buttons", "clock", "questlog", "questdetails", "party", "PartyOnQuest", "ping", "Focus", "QuestColor", "FOLLOW", "Reroute"}}),  # types/model.lua, focus.lua
     "game": ({"Game", "Atlas", "Runtime"}, {"UI": {"View"}, "Model": {"Observe", "Load", "SAVED"}}),
     "game/parts": ({"Game", "Atlas", "Runtime"}, {}),
     "game/commands": ({"Game", "Atlas", "Runtime"}, {}),
@@ -107,7 +107,7 @@ FRAME_NAMES = {"MagicMapFrame", "MagicMapMinimapStandIn", "MagicMapWorldMapEscap
 # The only files that make a QuestPOIFrame or call its DrawBlob, UpdateMouseOverTooltip (the client draws
 # and hit-tests its quest areas on one):
 # Game's sensor (Inside), and UI's quest areas, the one game read UI makes (architecture.md "Rules",
-# docs/brief.md §7: the spike's blob art, Layers.lua:765-1069); and /mm bench regions, their price.
+# the client's own quest-area art); and /mm bench regions, their price.
 POI_FILES = {"game/Oracles.lua", "ui/Areas.lua", "game/Bench.lua"}
 
 # Known violations, each waiting on a contract: (file, System, field). Keep it

@@ -1,4 +1,4 @@
-"""The way to the target on the simulated client (docs/v1-plan.md M3.3: ui/Path.lua; ui/You.lua's corpse and
+"""The way to the target on the simulated client (ui/Path.lua; ui/You.lua's corpse and
 waypoint pins and the title's target), Model.Target and Model.Route stubbed as typed (types/model.lua):
 
   test_path_line: the dotted line (S55-S57, lighter and dotted since 2.0): a light 1.6 px dot each 4 px over a
@@ -12,7 +12,7 @@ waypoint pins and the title's target), Model.Target and Model.Route stubbed as t
     (not the same one handed again) and a walk lay it out again; a pan carries it along, the dashes shown
     left as they stand, those it brings in shown (S58).
   test_path_cap: a long line at zoom 800: 160 pieces at most (the dots spread), only those near the view shown,
-    every piece within 4096 px of its canvas (S56; docs/v1-plan.md §2).
+    every piece within 4096 px of its canvas (S56).
   test_edge_arrow: a target off the view gets the gold arrow 16 px inside the edge where the line toward it
     leaves (along the route's leg that does), pointing on; none on the view or inside (F34, S59).
   test_track_shows: Track shows the arrow, the line or both (Settings > Tracking > Track: Shows).
@@ -268,9 +268,15 @@ def test_path_feel():
     sim.Run(0.2)
     assert P.pieces == len(dashes(G, 1.4)) > 15 and set(G.Looks().keys()) == {"1.4 BLEND 1 0.82 0.3", "2.8 BLEND 0.12 0.08 0.03"}
 
-    G.Feel("path.edge", False)  # the outline off: the strokes alone; its colour, once on again
+    G.Feel("path.edge", False)  # the outline off: ink, the line twice at its weight (MOD by its tint, its colour ADDed)
     sim.Run(0.2)
-    assert P.pieces == len(dashes(G, 1.4)) > 15 and dashes(G, 2.8) == []
+    looks = set(G.Looks().keys())  # (a MOD's fade at the ends: toward white)
+    assert {"1.4 ADD 1 0.82 0.3", "1.4 MOD 1 0.82 0.3"} <= looks and all(k.startswith("1.4 ") for k in looks)
+    assert P.pieces * 2 == len(dashes(G, 1.4)) > 30 and dashes(G, 2.8) == []
+    G.Feel("path.color", "White")  # white: no ink (it can't darken snow), the stroke alone
+    sim.Run(0.2)
+    assert set(G.Looks().keys()) == {"1.4 BLEND 1 1 1"} and P.pieces == len(dashes(G, 1.4))
+    G.Feel("path.color", "Gold")
     G.Feel("path.edge", True)
     G.Feel("path.edgeColor", "White")
     sim.Run(0.2)
@@ -287,6 +293,9 @@ def test_path_redraws():
     sim.Run(3)  # standing: nothing laid out, no widget call
     assert P.draws == draws and G.Calls() == calls
 
+    ns.UI.Feel.Set("route.lead", True)  # (the line leaving the way you face: off by default)
+    sim.Run(0.2)
+    draws = P.draws
     sim.player.facing += math.radians(1)  # under 3°: as it was
     sim.Run(0.2)
     assert P.draws == draws
