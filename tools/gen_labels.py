@@ -3,7 +3,7 @@
 sits, how much it matters), from the other Data files. Static facts only: how big,
 when and whether a name is drawn is the UI's to decide (it places them in rank
 order, dropping ones that collide). It was Atlas.Labels' work at first use, the
-play-test's 56 ms first open (docs/v1-plan.md §2, M1.1).
+play-test's 56 ms first open (M1.1).
 
   .venv/bin/python tools/gen_labels.py -o Data/Labels.lua
 
@@ -74,7 +74,10 @@ class Walk:
         if gc < 0 or gr < 0:
             return 0
         s = self.tiles.get(gc // CHUNKS * 64 + gr // CHUNKS)
-        return (ord(s[gr % CHUNKS * CHUNKS + gc % CHUNKS]) - 97) % 4 if s else 0
+        if not s:
+            return 0
+        ch = s[gr % CHUNKS * CHUNKS + gc % CHUNKS]
+        return ord(ch) - 65 if ch.isupper() else (ord(ch) - 97) % 4  # upper case: a complex chunk, its class
 
 
 def visual_centre(bounds, tiles, walk: Walk) -> tuple[float, float]:

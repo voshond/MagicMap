@@ -22,7 +22,8 @@ def test_atlas():
     col, row = Atlas.WorldToTile(*Atlas.TileToWorld(31.25, 40.5))
     assert abs(col - 31.25) < 1e-9 and abs(row - 40.5) < 1e-9
     gc, gr = int(32.378 * 16), int(49.024 * 16)  # Northshire
-    assert Atlas.Walk.Cell(0, gc, gr)[0] == 1 and Atlas.Walk.Snap(0, gc, gr) == (gc, gr)
+    node = Atlas.Walk.Snap(0, 32.378, 49.024)  # (a node id: gc * SPAN + gr * PARTS + its part)
+    assert Atlas.Walk.Cell(0, gc, gr)[0] == 1 and node // Atlas.Walk.SPAN == gc and Atlas.Walk.Class(0, node) == 1
     assert Atlas.Camera.Fit(28, 30, 36, 38, 800, 400, 1, 16, 800) == (32, 34, 50)
     assert Atlas.Camera.Fit(32, 34, 32, 34, 800, 400, 1) == (32, 34, 6400)  # one point: MIN_SPAN wide, finite (E3)
     assert Atlas.Camera.Fit(32, 34, 32, 34, 800, 400, 1, None, None, 0) == (32, 34, 6400)  # a span under it: MIN_SPAN
@@ -69,7 +70,7 @@ def test_atlas():
 def test_data_is_not_global_and_formats_agree():
     from mmtools.luaout import FORMATS
     L, Atlas = load_atlas()
-    assert not [k for k in L.globals() if str(k).startswith("MagicMap")]  # no data globals (spike-bugs E1)
+    assert not [k for k in L.globals() if str(k).startswith("MagicMap")]  # no data globals
     assert dict(Atlas.FORMATS.items()) == FORMATS  # atlas/Coords.lua and tools/mmtools/luaout.py
     assert all(Atlas.Data.formats[name] == f for name, f in FORMATS.items() if Atlas.Data[name] is not None)
 

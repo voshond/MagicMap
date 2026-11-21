@@ -1,22 +1,25 @@
-"""Model's route (docs/v1-plan.md M3.1: model/Route.lua) on the simulated client: A* over Atlas.Walk in a
-Runtime.Job, to your waypoint (test_target.TARGETS: Game's part as M3.2's hands it), its searches on a
-clock that counts their Lua (R-P2's), so a 1 ms slice is a slice of work:
+"""Model's route (model/Route.lua) on the simulated client: Atlas.Route over Atlas.Walk's
+parts (A* near, the tile graph far: docs/walk.md) in a Runtime.Job, to your waypoint
+(test_target.TARGETS: Game's part as M3.2's hands it), its searches on a clock that counts their Lua (R-P2's), so
+a 1 ms slice is a slice of work:
 
   test_route_dun_morogh: Kharanos to Anvilmar, around Dun Morogh's hills: found a slice a frame, each
     within its 1 ms but a node (the exit's "a 1 ms slice a frame, at most the slice and one node"), from you to
     the target. So are long open ones, their lines of sight long (the Barrens north to south, Goldshire to
-    Westfall, Feralas to Thousand Needles).
+    Westfall, Feralas to Thousand Needles), and the Crossroads to Cenarion Hold, across Kalimdor by the tile
+    graph in a few seconds' slices (main's plain A* gave up at 60,000 nodes, ~700 slices, short of such).
   test_route_replan: found again only past 3 chunks off it, or once the target moves more than 2 (an
     area's nearest edge slides as you go); meanwhile the old one (F33).
-  test_route_straight_partial: no walk data where the target is: you and it, straight; a plateau no way
-    climbs, 9 tiles off (its own region): no search for it, the way to the nearest place in yours, then on
-    straight; without regions, given up at 60,000 nodes, the way to as near as it got.
-  test_route_capped: that plateau's search from Goldshire, priced: ~700 slices (~720 strict), its KB;
+  test_route_straight_partial: no walk data where the target is: you and it, straight; Alterac's hills, 18
+    tiles off (their own region): no search for them, the way to the nearest place in yours, then on
+    straight; without regions, the tile graph searched out (given up), the way to as near as it got.
+  test_route_capped: that search from Goldshire without regions, priced: the tile graph searched out, all of
+    the Eastern Kingdoms' you can reach (main's plain A*: 60,000 nodes, ~700 slices; now ~120), its KB;
     walking on (off its partial way, past RETRY_MOVED) searches it again only once you've come half the way
     it spanned (the lead's decision at the M3 review: the spike searched again each 3-chunk stray).
   test_route_stray: riding a minute off the line (north, the waypoint east), priced: searched again each
     3 chunks off, as the spike's, within the at-rest budget (small p95 ≤ 1 ms) and a fifth of the allocation's
-    (the search's tables kept from one to the next, its nodes read a 3x3 at a time: Walk.Around).
+    (the search's tables kept from one to the next, a node's edges read a 3x3 at a time where it's all simple).
   test_route_gives_way: the big window zoomed in and out during that long search, priced: the search waits
     while the view moves (Focus.moving: a slice only in the frame a zoom starts, Model a frame behind), the
     zoom state's p95 ≤ 5 ms with the line across the view (M1.15), no frame over 8; at rest it goes on.
@@ -26,6 +29,12 @@ from test_target import put, targets
 
 KHARANOS, ANVILMAR = (32.91, 42.41), (31.28, 43.502)
 GOLDSHIRE, LAKESHIRE = (31.95, 49.75), (36.09, 49.28)
+CROSSROADS, CENARION_HOLD = (37.1, 32.6), (30.65, 44.91)  # inst 1
+ALTERAC = (31.33, 31.25)  # inst 0: Alterac's hills, their own region (no way there from Goldshire's, nor back)
+# (The Loch Modan plateau at 38.09,40.59 these tests had, cut off on the first bake, has a way up on the parts:
+# found, ~1.4x the straight line.)
+COUNT_NODES = """local Walk = ...; Nodes = 0; local Edges = Walk.Edges
+Walk.Edges = function(...) Nodes = Nodes + 1; return Edges(...) end"""  # (Edges: once a parts' node closed)
 CHUNK = 1 / 16  # tiles
 
 
@@ -58,16 +67,22 @@ def test_route_dun_morogh():
     sim.Run(1)  # standing: the same way
     assert same(ns.Model.Route(), r) and len(G.Jobs) == 1
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
-    for inst, a, b in ((1, (36.5, 30.0), (37.0, 38.0)), (0, GOLDSHIRE, (29.0, 53.5)), (1, (23.0, 38.0), (32.0, 43.0))):
+    for inst, a, b in ((1, (36.5, 30.0), (37.0, 38.0)), (0, GOLDSHIRE, (29.0, 53.5)), (1, (23.0, 38.0), (32.0, 43.0)),
+                       (1, CROSSROADS, CENARION_HOLD)):
         L, sim, ns, G = targets([], followed=0)
         me = sim.player
         me.inst, (me.col, me.row) = inst, a
         sim.Run(1)
         put(G, "waypoint", inst, *b)
+        frames = 0
         while not (len(G.Jobs) and G.Jobs[1].done):
             sim.Step()
-        p = ns.Runtime.Perf()[0]["model: route"]
-        assert p.max <= 1.1, (inst, a, b, p.max)
+            frames += 1
+        sim.Step()  # (Model takes it up a frame on)
+        p, r = ns.Runtime.Perf()[0]["model: route"], ns.Model.Route()
+        print(f"{inst} {a} -> {b}: {frames} frames, its slowest resume {p.max:.2f} ms")
+        assert p.max <= 1.1 and r and not r.straight and frames < 250, (inst, a, b, p.max, frames)
+        assert b != CENARION_HOLD or not r.partial
 
 
 def test_route_replan():
@@ -115,48 +130,50 @@ def test_route_straight_partial():
     assert len(G.Jobs) == 0
 
     G.Counting = False  # (Lua free: the whole search in one resume)
-    L.execute("local Walk = ...; Nodes = 0; local Around = Walk.Around; Walk.Around = function(...) Nodes = Nodes + 1; return Around(...) end",
-              ns.Atlas.Walk)
-    put(G, "waypoint", 0, 38.09375, 40.59375)  # a plateau in the Loch Modan hills, cliffs all round: its own region
+    L.execute(COUNT_NODES, ns.Atlas.Walk)
+    put(G, "waypoint", 0, *ALTERAC)  # Alterac's hills: their own region
     find(sim, ns)
     r = ns.Model.Route()
-    assert G.Nodes < 60000  # not for it: for the nearest place in yours (Data/WalkRegions.lua): Dun Morogh, by its tunnels
-    assert r.partial and not r.straight and r[len(r)].row == 40.59375
+    assert G.Nodes < 5000  # not for them: for the nearest place in yours (Data/WalkRegions.lua), the way there
+    assert r.partial and not r.straight and r[len(r)].row == ALTERAC[1]
 
-    L, sim, ns, G = targets([], followed=0)  # without regions (a long way in one region still can): searched out
+    L, sim, ns, G = targets([], followed=0)  # without regions: the tile graph searched out, as near as it got
     sim.Run(1)
     ns.Atlas.Data.WalkRegions = None
     G.Counting = False
-    L.execute("local Walk = ...; Nodes = 0; local Around = Walk.Around; Walk.Around = function(...) Nodes = Nodes + 1; return Around(...) end",
-              ns.Atlas.Walk)
-    put(G, "waypoint", 0, 38.09375, 40.59375)
+    L.execute(COUNT_NODES, ns.Atlas.Walk)
+    put(G, "waypoint", 0, *ALTERAC)
     find(sim, ns)
     r = ns.Model.Route()
-    assert G.Nodes == 60000  # given up at MAX_NODES (Walk.Around: once a node closed)
-    assert r.partial and not r.straight and r[len(r)].row == 40.59375
+    assert 0 < G.Nodes < 20000  # (main's plain A*: given up at its 60,000)
+    assert r.partial and not r.straight and r[len(r)].row == ALTERAC[1]
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 
 def test_route_capped():
     L, sim, ns, G = targets([], followed=0)
     me = sim.player
-    sim.Run(1)
-    ns.Atlas.Data.WalkRegions = None  # (with them, no search: test_route_straight_partial; a search can still cap)
-    put(G, "waypoint", 0, 38.09375, 40.59375)  # the plateau, 11 tiles off: no way there
+    sim.Run(5)  # past login's grace: its KB counted
+    ns.Atlas.Data.WalkRegions = None  # (with them, no search: test_route_straight_partial; a search can still give up)
+    sim.Price(True)
+    put(G, "waypoint", 0, *ALTERAC)  # 18.5 tiles north: no way there
     frames = 0
     while not (len(G.Jobs) and G.Jobs[1].done):
         sim.Step()
         frames += 1
     sim.Step()
+    sim.Price(False)
     p = ns.Runtime.Perf()[0]["model: route"]
     print(f"a capped search: {frames} frames, {p.kb:.0f} KB, its slowest resume {p.max:.2f} ms, {p.kbMax:.0f} KB")
-    assert 600 < frames < 850 and p.kb < 5000 and ns.Model.Route().partial  # (MM_STRICT=1: ~720, its checks counted)
+    # (main's: 60,000 nodes of plain A*, ~700 frames, ~4.3 MB. The tile graph searches out all it can reach, ~7,000
+    # of its nodes, in ~120 frames and ~1.6 MB: the bound was 250..500 frames on the first bake's plain search.)
+    assert 60 < frames < 250 and p.kb < 2500 and p.max <= 1.1 and ns.Model.Route().partial
     walked = []
-    for _ in range(10):  # toward it, 0.56 tiles a step (9 chunks: off its way, past RETRY_MOVED in two)
-        me.col, me.row = me.col + 0.31, me.row - 0.465
+    for _ in range(18):  # toward it, 0.56 tiles a step (9 chunks: off its way, past RETRY_MOVED in two)
+        me.row = me.row - 0.56
         sim.Run(0.3)
         walked.append(len(G.Jobs))
-    assert walked == [1] * 9 + [2], walked  # again past 5.5 tiles, half of its 11
+    assert walked == [1] * 16 + [2] * 2, walked  # again past 9.25 tiles, half of its 18.5
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
 
@@ -174,6 +191,8 @@ def test_route_stray():
     p, fs = ns.Runtime.Perf()[0]["model: route"], ns.Runtime.FrameStats()
     kb = (p.kb - kb0) / 60
     print(f"riding off the line 60 s: {len(G.Jobs)} searches, {p.n} slices, route {kb:.1f} KB/s, small p95 {fs.byState.small.p95}")
+    # (kb: ~9, a search every ~7 s. The corridor's cells in arrays kept by their place in the run's box, and a run the
+    # last search drew drawn again without a search: emptied hash tables, rehashed up from small each search, made ~38)
     assert len(G.Jobs) >= 6 and fs.byState.small.p95 <= 1 and kb <= 10 and p.max <= 1.1
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
 
@@ -185,7 +204,7 @@ def test_route_gives_way():
     view, P = ns.UI.Window.view, ns.Runtime.Perf
     sim.Price(True)
     ns.Atlas.Data.WalkRegions = None  # (with them, no long search: test_route_straight_partial)
-    put(G, "waypoint", 0, 38.09375, 40.59375)  # the plateau: ~700 slices
+    put(G, "waypoint", 0, *ALTERAC)  # Alterac: ~120 slices
     sim.Run(0.5)
     n0, cycles = P()[0]["model: route"].n, 4
     for _ in range(cycles):
@@ -195,11 +214,15 @@ def test_route_gives_way():
                 sim.Step()
             sim.Run(0.1)  # (still moving: the zoom unsettled, its layouts not caught up)
     moving = P()[0]["model: route"].n - n0
-    sim.Run(2)
+    for _ in range(50):  # at rest: on to its end (walk v2's search, ~200 slices)
+        sim.Run(0.1)
+        if G.Jobs[1].done:
+            break
     rest = P()[0]["model: route"].n - n0 - moving
     sim.Price(False)
     fs = ns.Runtime.FrameStats()
-    print(f"zooming during the plateau's search: {moving} slices in {cycles * 2} zooms, {rest} in 2 s at rest; "
+    print(f"zooming during Alterac's search: {moving} slices in {cycles * 2} zooms, {rest} at rest to its end; "
           f"zoom p95 {fs.byState.zoom.p95} max {fs.max}")
-    assert not G.Jobs[1].done and moving <= cycles * 2 and rest > 60 and fs.byState.zoom.p95 <= 5 and fs.max <= 8
+    # (on at rest, to its end)
+    assert G.Jobs[1].done and moving <= cycles * 2 and rest > 60 and fs.byState.zoom.p95 <= 5 and fs.max <= 8
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))

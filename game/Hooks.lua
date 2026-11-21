@@ -1,4 +1,4 @@
--- Keys Blizzard owns, caught for UI (types/view.lua HookedInput; spike MinimapMode.lua:130-133, 195-202):
+-- Keys Blizzard owns, caught for UI (types/view.lua HookedInput):
 --   M (ToggleWorldMap) while View.replace.worldmap (the user chose to replace the world map) and our window is
 --     shown, or the minimap isn't replaced (then the window is hidden until M opens it big): the world map it
 --     just opened is hidden again, and
@@ -8,7 +8,7 @@
 --     on a Retail-engine client, else the QuestLogFrame) is hidden again, and UI hears "questlog" (it opens the
 --     big map with its quest log, or closes it). L closing Blizzard's and our own call
 --     (Game.ToggleQuestLog: game/commands/questlog.lua, the client's log asked for) are left alone.
---   In combat hiding Blizzard's is blocked (spike-bugs K2), so M or L opening it while ours is small stashes
+--   In combat hiding Blizzard's is blocked, so M or L opening it while ours is small stashes
 --     it instead: alpha 0, under ours as it grows (not if its strata is above ours: then it shows as usual).
 --     The key again closes it (the client's own secure path) and ours with it. Ours shrinking otherwise in
 --     combat shows the stashed one again; combat ending while ours is big hides it.
@@ -16,8 +16,7 @@
 --   (the settings window, ui/Feel.lua, is named there too).
 -- What's caught (game/Button.lua's "toggle" too) is handed over as obs.hooked, its own part:
 -- everything since the last observe, each a constant table.
--- /mm check combat answers the M1 gate's question for the guard (the spike has none,
--- MinimapMode.lua:198-201): in combat, Blizzard's map open, it hides it once as M would and says
+-- /mm check combat tests the guard: in combat, Blizzard's map open, it hides it once as M would and says
 -- whether it hid and whether the client blocked us (a block is taint's too: game/Telemetry.lua).
 
 local ADDON, ns = ...
@@ -131,7 +130,7 @@ local function Blocked(_, addon, fn)
 end
 Runtime.On("ADDON_ACTION_BLOCKED", "game: check combat", Blocked)
 Runtime.On("ADDON_ACTION_FORBIDDEN", "game: check combat", Blocked)
-Game.Slash("check combat", "in combat, Blizzard's map open (M): is hiding it blocked? (M's guard, spike-bugs K2)", function()
+Game.Slash("check combat", "in combat, Blizzard's map open (M): is hiding it blocked? (M's guard)", function()
 	if not (InCombatLockdown() and WorldMapFrame:IsShown()) then
 		return Game.Print("check combat: in combat, open Blizzard's map (M), then again")
 	end

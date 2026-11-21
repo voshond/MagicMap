@@ -4,7 +4,7 @@
 (MagicMap.toc, the files it lists and the Textures/ tree), straight from
 the working tree, so uncommitted changes are included. /reload in game to pick up Lua changes;
 a file the client hasn't seen (a new file, texture or the folder itself) needs a
-client restart: it says so (spike-bugs L5).
+client restart: it says so.
 
 The spike's own MagicMap folder (its TOC saves MagicMapDB) is never replaced
 unless --replace-spike, which moves it to MagicMap.spike-backup first. The
@@ -51,7 +51,7 @@ BACKUP = f"{ADDON}.spike-backup"
 HEADER = f"""## Interface: 16001
 ## Title: MagicMap
 ## Notes: For WoW Forever. Your minimap, zooming out to the whole world on the game's own minimap terrain, with Blizzard's blips on it. Press M for a big map; choose what it replaces in Settings.
-## Version: 3.1.1
+## Version: 3.2.0
 ## X-License: GPL-3.0-only
 ## Category: Map & Minimap
 ## IconTexture: Interface\\Icons\\INV_Misc_Map_01
@@ -231,7 +231,7 @@ def main() -> None:
             shutil.move(dest, backup)
         seen["files"] = []
         print(f"the spike's {where}{dest} moved to {where}{backup}")
-    before = set(seen["files"])  # what the client may have seen: a file new to it needs a restart (spike-bugs L5)
+    before = set(seen["files"])  # what the client may have seen: a file new to it needs a restart
 
     rev = build_rev(files)
     with tempfile.TemporaryDirectory() as tmp:
