@@ -44,6 +44,10 @@
 ---                              questlog: L is ours, the same way
 ---@field diag? fun(): table      UI's state for telemetry marks (camera, layouts: docs/telemetry.md "State" `map`, `layers`).
 ---                              Game calls it only when taking a mark and stores the result; it never acts on it. Its shape is UI's (OPEN).
+---@field under? boolean       with minimap "ours", the small map is under Blizzard's minimap (ui/Under.lua): the window on
+---                              the Minimap's spot, a strata under its cluster; Game leaves Blizzard's chrome shown (the
+---                              cluster, the stand-in and what hangs on it: its buttons, other addons'), its ground off and
+---                              the overlay masked round within the round map; false/nil: the cluster hidden, as ever
 ---@field chrome? MM.ViewChrome  Blizzard's Minimap rim parts while the Minimap is ours; nil: left as Blizzard has them
 ---@field here? { x: number, y: number, zoom: number, w: number }|false  you on the view (its pixels from TOPLEFT), its zoom
 ---                              (pixels per tile) and width: where the overlay spike lays Blizzard's Minimap; false: not on it
@@ -225,6 +229,8 @@ function Game.Command(cmd) end
 ---| "questlog"   L (ToggleQuestLog) while View.replace.questlog (the window as for "worldmap"): Game has hidden the quest log it opened; UI opens the big map with its quest log, or closes it
 ---| "escape"     Escape while View.window.big: Game's catcher closed
 ---| "toggle"     the minimap button or the addon compartment clicked: UI shows or hides the map (as /mm toggle)
+---| "zoomIn"     Blizzard's minimap + clicked while View.under: UI zooms in a step (Game puts the Minimap's zoom back)
+---| "zoomOut"    its - likewise, out
 
 ---@class MM.HookedInput
 ---@field kind MM.HookedKind

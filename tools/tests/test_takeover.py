@@ -395,3 +395,67 @@ def test_engage_fails_loudly():
     said = [sim.prints[i] for i in range(n + 1, len(sim.prints) + 1)]
     assert not ns.Game.minimap.overlaid and sum("aren't the sizes MagicMap knows" in p for p in said) == 1, said
     assert not errors(sim, ns), "\n\n".join(errors(sim, ns))
+
+
+def test_under_blizzard_minimap():
+    """Minimap look Blizzard's: Blizzard's minimap stays shown (its cluster, its buttons on the stand-in), its ground
+    off, our window under it on its spot a strata down, MagicMap's chrome hidden; Blizzard's + zooms ours; the big map
+    MagicMap's own; back to MagicMap's look, the window where it was and the cluster hidden again."""
+    L, sim, ns = boot()
+    G, UI, Game = L.globals(), ns.UI, ns.Game
+    H = L.execute(HELPERS, sim)
+    sim.Run(1)
+    sim.Slash("/mm toggle")  # the map shown: the Minimap taken
+    sim.Run(2)
+    frame, chrome = UI.Window.frame, UI.Chrome
+    stand, cluster = G.MagicMapMinimapStandIn, G.MinimapCluster
+    was = H.Rect(frame)
+    assert Game.minimap.engaged and not cluster.IsShown(cluster) and not UI.Under.on
+
+    UI.Feel.Set("general.look", "blizzard")
+    sim.Run(0.5)
+    home = Game.obs.minimap.home
+    assert UI.Under.on and UI.View().under
+    assert cluster.IsShown(cluster) and cluster.GetAlpha(cluster) == 1 and stand.IsShown(stand)
+    assert not sim.minimapGround and Game.minimap.engaged
+    assert all(abs(a - b) < 0.01 for a, b in zip(H.Rect(frame), (home.left, home.top, home.w, home.h))), (
+        H.Rect(frame), (home.left, home.top, home.w, home.h))
+    assert frame.GetFrameStrata(frame) == "BACKGROUND" and cluster.GetFrameStrata(cluster) == "LOW"
+    assert not (chrome.border.IsShown(chrome.border) or chrome.band.IsShown(chrome.band) or chrome.grip.IsShown(chrome.grip))
+    # The line to a waypoint far east stays inside the round (a Line takes no mask: Path keeps it in).
+    L.execute("""local ns = ...
+    local you = ns.Model.you
+    local t = { kind = "waypoint", key = "w", pos = { inst = ns.UI.Camera.inst, col = you.col + 6, row = you.row + 1 } }
+    ns.Model.Target, ns.Model.Route, ns.UI.Track.Line = function() return t end, function() end, function() return true end
+    """, ns)
+    S, P = sim.state, UI.Path
+    for style in ("dashed", "solid"):
+        UI.Feel.Set("path.style", style)
+        sim.Run(0.3)
+        c, r = S[P.canvas].points[1], min(UI.Window.Size()) / 2
+        lines = [l for l in P.canvas.GetRegions(P.canvas) if S[l].shown and S[l].type == "Line"]
+        ends = [(c.x + S[l][k][3], c.y + S[l][k][4]) for l in lines for k in ("startPoint", "endPoint")]
+        far = max(math.hypot(x, y) for x, y in ends)
+        short = 8 if style == "dashed" else 0.5  # (a dash shows only wholly inside: up to a period short at this zoom)
+        assert P.pieces > 0 and r - short <= far <= r + 0.01, (style, r, far)  # out to the rim, not past it
+    L.execute("local ns = ...; ns.Model.Target = function() end", ns)
+    sim.Run(0.1)
+
+    z0 = UI.Camera.cam.zoom
+    sim.Click(sim.minimapZoom)  # Blizzard's +: our zoom, a step in
+    sim.Run(0.3)
+    assert UI.Camera.cam.zoom > z0 * 1.05
+
+    UI.BigMap.Toggle()  # big: MagicMap's chrome, over everything
+    sim.Run(0.5)
+    assert not UI.Under.on and chrome.border.IsShown(chrome.border) and frame.GetFrameStrata(frame) == "HIGH"
+    UI.BigMap.Toggle()
+    sim.Run(0.5)
+    assert UI.Under.on and frame.GetFrameStrata(frame) == "BACKGROUND"
+
+    UI.Feel.Set("general.look", "magicmap")
+    sim.Run(0.5)
+    assert not UI.Under.on and not cluster.IsShown(cluster) and not stand.IsShown(stand)
+    assert all(abs(a - b) < 0.01 for a, b in zip(H.Rect(frame), was)) and frame.GetFrameStrata(frame) == "LOW"
+    assert chrome.border.IsShown(chrome.border) and chrome.band.IsShown(chrome.band)
+    assert not errors(sim, ns), "\n\n".join(errors(sim, ns))

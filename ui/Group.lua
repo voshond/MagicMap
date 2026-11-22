@@ -42,7 +42,7 @@ Group.dots = dots
 local function Dot(i)
 	local t = dots[i]
 	if not t then
-		t = frame:CreateTexture(nil, "ARTWORK")
+		t = UI.Under.Mask(frame:CreateTexture(nil, "ARTWORK"))
 		if C_Texture.GetAtlasInfo(BLIP) then
 			t:SetAtlas(BLIP)
 		else

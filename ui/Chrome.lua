@@ -177,11 +177,16 @@ function Chrome.OnInsets(fn)
 	fn(Chrome.border.insets)
 end
 
--- The view inside the border shown, short of the side's room on its right (Chrome.SetSide).
-Chrome.side = 0
+-- The view inside the border shown, short of the side's room on its right (Chrome.SetSide); under Blizzard's
+-- minimap (Chrome.SetUnder, ui/Under.lua) no border is shown and the view is the whole window.
+Chrome.side, Chrome.under = 0, false
 local function PlaceView()
-	local insets = Chrome.border.insets
 	view:ClearAllPoints()
+	if Chrome.under then
+		view:SetAllPoints()
+		return
+	end
+	local insets = Chrome.border.insets
 	view:SetPoint("TOPLEFT", insets[1], -insets[2])
 	view:SetPoint("BOTTOMRIGHT", -insets[3] - Chrome.side, insets[4])
 end
@@ -189,11 +194,19 @@ end
 -- Settings > General > Map window > Border: "metal" (the client's frame) or "tooltip"; the view and all placed by it follow.
 function Chrome.SetBorder(style)
 	local shown = borders[style] or borders.metal
-	for _, b in pairs(borders) do b:SetShown(b == shown) end
-	backing:SetShown(shown == borders.tooltip)
+	for _, b in pairs(borders) do b:SetShown(b == shown and not Chrome.under) end
+	backing:SetShown(shown == borders.tooltip and not Chrome.under)
 	Chrome.border = shown
 	PlaceView()
 	for _, fn in ipairs(placed) do fn(shown.insets) end
+end
+
+-- Under Blizzard's minimap (ui/Under.lua): the border hidden, the view the whole window; off, as Border has it.
+function Chrome.SetUnder(on)
+	Chrome.under = on
+	Chrome.border:SetShown(not on)
+	backing:SetShown(not on and Chrome.border == borders.tooltip)
+	PlaceView()
 end
 
 -- px kept on the view's right, inside the border, for a panel there (the big map's quest log: ui/QuestLog.lua); 0: none.

@@ -106,10 +106,19 @@ local zoomOut = ArtButton(Chrome.controls, 20, 11, ZoomArt("ui-hud-minimap-zoom-
 -- The quest pill's gap from the window's left and bottom borders is one: the border's insets differ, so its
 -- bottom offset makes up the difference (bottomY), and the zoom buttons drop by as much (clear of the grip). Set from
 -- the border shown (Chrome.OnInsets, below the pill's Place).
-local bottomY
+local function BottomY(insets) return math.max(2, PAD + insets[1] - insets[4]) end
+local bottomY = BottomY(Chrome.border.insets)
 local zoomIn = ArtButton(Chrome.controls, 20, 20, ZoomArt("ui-hud-minimap-zoom-in"))
-zoomIn:SetPoint("BOTTOM", zoomOut, "TOP", 0, 2)
 Controls.zoomIn, Controls.zoomOut = zoomIn, zoomOut
+-- The + and - in their column at the map's bottom right (under Blizzard's minimap they hide, its own stand in, and
+-- the reset and pin above where the + was move inside the round: ui/Under.lua).
+function Controls.Home()
+	zoomOut:ClearAllPoints()
+	zoomOut:SetPoint("BOTTOMRIGHT", -PAD, bottomY + 6)
+	zoomIn:ClearAllPoints()
+	zoomIn:SetPoint("BOTTOM", zoomOut, "TOP", 0, 2)
+end
+Controls.Home()
 
 -- Reset: above the zoom in (the gap the + and - keep), shown only while the map is off its default: not following you,
 -- or the zoom isn't the default (UI.DefaultZoom(), ui/View.lua); a click flies back to you at that zoom (Motion.Reset).
@@ -639,7 +648,7 @@ end
 local GLYPH_LEFT = 1
 Controls.COLUMN = PAD + 20 / 2 + GLYPH_LEFT
 Chrome.OnInsets(function(insets)
-	bottomY = math.max(2, PAD + insets[1] - insets[4])
+	bottomY = BottomY(insets)
 	zoomOut:ClearAllPoints()
 	zoomOut:SetPoint("BOTTOMRIGHT", -PAD, bottomY + 6)
 	Place()
