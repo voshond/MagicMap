@@ -33,6 +33,7 @@ local clusterShown -- the cluster's own shown state, from an engage until it's b
 
 local standIn = CreateFrame("Frame", "MagicMapMinimapStandIn", UIParent)
 standIn:Hide()
+local standShown = false -- (only Cluster shows or hides it)
 
 local function OnRelease(fn) undo[#undo + 1] = fn end
 local ZOOMS = 5 -- Blizzard's Minimap's zooms: 0 (widest) .. ZOOMS (game/parts/MinimapState.lua's yards)
@@ -115,7 +116,10 @@ end
 local function Cluster()
 	local c = MinimapCluster
 	local stand = m.engaged and under
-	if standIn:IsShown() ~= stand then standIn:SetShown(stand) end
+	if standShown ~= stand then
+		standShown = stand
+		standIn:SetShown(stand)
+	end
 	if m.engaged and clusterShown == nil then clusterShown = c:IsShown() end
 	if clusterShown == nil then return end
 	local want = (not m.engaged or under) and clusterShown

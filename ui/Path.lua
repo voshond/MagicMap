@@ -473,14 +473,10 @@ local function Covered(cam, w, h)
 	return vx - w / 2 >= rect[1] and vx + w / 2 <= rect[3] and vy - h / 2 >= rect[2] and vy + h / 2 <= rect[4]
 end
 
--- A piece from a to b is on the map: within the rect, or (round) wholly within the circle.
-local function Near(ax, ay, bx, by)
-	if roundR then
-		local r2 = roundR * roundR
-		return (ax - rcx) ^ 2 + (ay - rcy) ^ 2 <= r2 and (bx - rcx) ^ 2 + (by - rcy) ^ 2 <= r2
-	end
-	return (ax >= rect[1] or bx >= rect[1]) and (ax <= rect[3] or bx <= rect[3]) and (ay >= rect[2] or by >= rect[2])
-		and (ay <= rect[4] or by <= rect[4])
+-- A piece from a to b is wholly within the round (roundR about rcx, rcy).
+local function InRound(ax, ay, bx, by)
+	local r2 = roundR * roundR
+	return (ax - rcx) ^ 2 + (ay - rcy) ^ 2 <= r2 and (bx - rcx) ^ 2 + (by - rcy) ^ 2 <= r2
 end
 
 -- The dashes (or dots) of the line as laid out (lay: m, len, s0, s1, step, id (Path.draws), still; parity,
@@ -494,6 +490,7 @@ local function Dashes(half)
 	local m, len, s0, s1, step, id, still = L.m, L.len, L.s0, L.s1, L.step, L.id, L.still
 	local dash = DOTS and DASH or step * DASH / PERIOD -- /: never 0 (DASH > 0)
 	local q = (step > PERIOD and not DOTS) and 1 or 2 -- px a dash's ends are rounded to: halves, whole past MAX_PIECES (a dot always halves: a whole px is most of it)
+	local r1, r2, r3, r4 = rect[1], rect[2], rect[3], rect[4]
 	local n, i = 0, m - 1
 	local b = s1 + step
 	while b - step > s0 and n < MAX_PIECES do
@@ -508,7 +505,11 @@ local function Dashes(half)
 			local near, ax, ay, bx, by = false, nil, nil, nil, nil
 			if len - a <= still and kept[n] == id - 1 then -- as it was: shown again if it's come into the rect
 				kept[n], ax, ay, bx, by = id, dax[n], day[n], dbx[n], dby[n]
-				near = Near(ax, ay, bx, by)
+				if roundR then
+					near = InRound(ax, ay, bx, by)
+				else
+					near = (ax >= r1 or bx >= r1) and (ax <= r3 or bx <= r3) and (ay >= r2 or by >= r2) and (ay <= r4 or by <= r4)
+				end
 				if near and not (strokes[n].on and (washes[n].on or not EDGE)) then Place(n, ax, ay, bx, by, dwa[n], dsa[n]) end
 				a = nil
 			else
@@ -542,7 +543,11 @@ local function Dashes(half)
 				local even = 1 - UNEVEN * (0.5 + 0.5 * sin(n * 0.45 + 2))
 				kept[n], dax[n], day[n], dbx[n], dby[n] = id, ax, ay, bx, by
 				dwa[n], dsa[n] = floor(WASH_A * f + 0.5) / 200, floor(STROKE_A * f * even + 0.5) / 200
-				near = Near(ax, ay, bx, by)
+				if roundR then
+					near = InRound(ax, ay, bx, by)
+				else
+					near = (ax >= r1 or bx >= r1) and (ax <= r3 or bx <= r3) and (ay >= r2 or by >= r2) and (ay <= r4 or by <= r4)
+				end
 				if near then Place(n, ax, ay, bx, by, dwa[n], dsa[n]) end
 			end
 			if not near then
