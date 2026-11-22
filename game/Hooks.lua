@@ -13,6 +13,8 @@
 --     The key again closes it (the client's own secure path) and ours with it. Ours shrinking otherwise in
 --     combat shows the stashed one again; combat ending while ours is big hides it.
 --   Escape while big: a catcher in UISpecialFrames is shown, and Escape closing it is "escape"
+--   Blizzard's minimap + and - while View.under (ours under its chrome): "zoomIn", "zoomOut" (its zoom is the
+--     overlay's: game/Minimap.lua puts it back)
 --   (the settings window, ui/Feel.lua, is named there too).
 -- What's caught (game/Button.lua's "toggle" too) is handed over as obs.hooked, its own part:
 -- everything since the last observe, each a constant table.
@@ -23,7 +25,7 @@ local ADDON, ns = ...
 local Game, Runtime = ns.Game, ns.Runtime
 
 local INPUT = { worldmap = { kind = "worldmap" }, questlog = { kind = "questlog" }, escape = { kind = "escape" },
-	toggle = { kind = "toggle" } }
+	toggle = { kind = "toggle" }, zoomIn = { kind = "zoomIn" }, zoomOut = { kind = "zoomOut" } }
 local caught, handed = {}, {}
 local shown, big = false, false -- the window, as the last apply read View
 local override = false -- M is ours to take (View.replace.worldmap, and the window shown or the minimap not ours); else Blizzard's opens as it always does
@@ -110,9 +112,20 @@ tinsert(UISpecialFrames, "MagicMapWelcome")
 -- A pin's popup (ui/Popup.lua): Escape closes it.
 tinsert(UISpecialFrames, "MagicMapPopup")
 
+-- Blizzard's + and - (the Minimap's ZoomIn and ZoomOut, Minimap.xml; MinimapZoomIn/Out on older clients).
+local under = false
+for kind, b in pairs({ zoomIn = Minimap.ZoomIn or MinimapZoomIn, zoomOut = Minimap.ZoomOut or MinimapZoomOut }) do
+	if b.HookScript then
+		b:HookScript("OnClick", Runtime.Wrap("game: minimap " .. kind, function()
+			if under and Game.minimap.engaged then Game.Hooked(kind) end
+		end))
+	end
+end
+
 Game.Apply("hooks", function(view)
 	local w = view.window
 	shown, big = w.shown, w.big
+	under = view.under == true
 	local r = view.replace
 	local ours = r ~= nil and (shown or r.minimap ~= true)
 	override = ours and r.worldmap == true

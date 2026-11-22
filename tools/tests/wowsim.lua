@@ -454,6 +454,9 @@ Texture.SetDrawLayer = setDrawLayer
 function Texture:GetDrawLayer() return S[self].layer, S[self].sublevel end
 
 local Line = class("Line", "Texture")
+-- As the client's: a Line takes no mask (calling either is calling nil there).
+function Line:AddMaskTexture() error("attempt to call a nil value (method 'AddMaskTexture'): a Line takes no mask") end
+function Line:RemoveMaskTexture() error("attempt to call a nil value (method 'RemoveMaskTexture'): a Line takes no mask") end
 local function lineAnchor(self, which, point, rel, x, y)
 	assert(VALID_POINTS[point], "Line point: bad point")
 	local e = S[self][which] or {}
@@ -1772,8 +1775,9 @@ function Dropdown:IsMenuOpen() return Sim.menu ~= nil and Sim.menu.owner == self
 function Dropdown:OpenMenu() Sim.menu = dropdownMenu(self) end
 function Dropdown:CloseMenu() if self:IsMenuOpen() then Sim.menu = nil end end
 function Dropdown:SetDefaultText(t) S[self].defaultText = t end
+local function dropdownPress(self) if self:IsMenuOpen() then self:CloseMenu() else self:OpenMenu() end end
 TYPE_SETUP.DropdownButton = function(f)
-	f:SetScript("OnMouseDown", function(self) if self:IsMenuOpen() then self:CloseMenu() else self:OpenMenu() end end)
+	f:SetScript("OnMouseDown", dropdownPress)
 end
 TEMPLATES.WowStyle1DropdownTemplate = true
 TEMPLATE_SETUP.WowStyle1DropdownTemplate = function(f)

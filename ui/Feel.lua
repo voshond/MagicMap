@@ -233,7 +233,7 @@ end))
 -- The window
 ---------------------------------------------------------------------------
 
-local SIDE_W, SIDE_ROW, TABS = 140, 28, 15 -- px: the sidebar's width, a page's row; the pages it has room for
+local SIDE_W, SIDE_ROW, TABS = 140, 28, 16 -- px: the sidebar's width, a page's row; the pages it has room for
 local PAD, HEADER, TITLE = 14, 26, 30 -- px: the frame's margin, its header bar, a page's title and divider
 local ROW, LINE, HEAD, GAP = 26, 20, 22, 4 -- px: a row, a list's line, a section's header, above a header
 local PAGE_X = PAD + SIDE_W + 10 -- the page's left edge
