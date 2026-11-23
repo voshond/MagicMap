@@ -4,9 +4,35 @@ Each release's notes, newest first. The zips are on [GitHub](https://github.com/
 
 ## Unreleased
 
+- **City tints.** Each capital lays its own colour over the whole map while the map shows it: Undercity a cold dim
+  blue, Ironforge forge amber, Orgrimmar a warm dust, Darnassus violet, Stormwind a light blue, Thunder Bluff a light
+  gold. Settings › Advanced › City tints turns each off or sets its Colour, Opacity, Blend (Wash, Multiply or Glow)
+  and Brightness.
+- **Zone tints.** Settings › Advanced › Zone tints: under Eastern Kingdoms and Kalimdor, every zone has a tint of
+  its own with the same settings, off until turned on.
+- **Indoor and city changes ease.** Walking into or out of a building, through a doorway, or onto another layer
+  crosses over in a fifth of a second, no cut.
+- **Indoors, what's lit is what's connected.** In a building the map lights your room and the rooms you can walk to
+  from it, not every room at your height across the city: stepping through a doorway no longer changes rooms far
+  away, rooms stacked over each other are no longer lit together, and going underground (the Cleft of Shadow,
+  Undercity) or back up changes the layer. Outdoors in a capital, everything underground is faded; in a building on
+  the surface with the map small (a gate of the Ruins of Lordaeron), nothing underground is drawn.
+- **Buildings on a city's streets are found.** Walking into Orgrimmar's auction house (or any building standing on
+  a street) now switches the map to it. The small map dims the ground only under a roof or underground, not on a
+  city's streets or through a gate.
+
+## 3.3.0 (build 1.60.1.71037)
+
+- **Zone names and subzone names, each on or off.** The gear's Zone labels row is now two, Zone names and Subzone
+  names (also Settings › Map › Names).
+- **Zone levels.** Settings › Map › Names › Zone levels shows each zone's level range in small text under its name on
+  the big map (off by default).
 - **Blizzard's minimap, MagicMap's map.** Settings › General › Minimap look: Blizzard's keeps Blizzard's own
   minimap where it is, with its ring, zone name, buttons and clock, and draws MagicMap's map inside it in place of
-  Blizzard's ground. It still pans and zooms as MagicMap's does; the big map (M) is unchanged.
+  Blizzard's ground. It still pans and zooms as MagicMap's does; the big map (M) is unchanged. Blizzard's own + and - zoom it.
+  A small MagicMap badge under the tracking button (in Blizzard's addon compartment box) marks it as MagicMap's;
+  its name beside it; a click opens MagicMap's menu, with Minimap look to go back to MagicMap's frame. MagicMap's
+  rim button and the quest pill stay hidden in this look, and the reset and pin stand round the ring past Blizzard's +.
 
 ## 3.2.1 (build 1.60.1.71037)
 
