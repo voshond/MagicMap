@@ -262,6 +262,7 @@ Runtime.Step("ui", "map: keys", function()
 	local m = Model.minimap
 	if m and m.home then
 		BigMap.home = m.home
+		BigMap.badge, BigMap.zoom = m.badge, m.zoom -- (ui/Under.lua's badge's spot, and Blizzard's +: the reset and pin's)
 		if m.homeStrata ~= BigMap.homeStrata then
 			BigMap.homeStrata = m.homeStrata
 			if not small then frame:SetFrameStrata(SmallStrata()) end

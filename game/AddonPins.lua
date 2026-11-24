@@ -258,7 +258,7 @@ end
 
 -- Only tracked quests on the map (View.trackedOnly, the pass's): a Questie icon for a quest in your log that isn't in
 -- Blizzard's tracker, but a quest to pick up (Questie's own rule: QuestieFrame.lua's hideUntrackedQuestsMapIcons).
-local trackedOnly, untracked = false, {} -- the pass's; quest -> true/false, asked once a pass
+local trackedOnly, untracked = false, {} -- the pass's; quest -> true/false, asked once till the log or tracker changes
 local function Untracked(icon)
 	if not trackedOnly then return false end
 	local d = rawget(icon, "data")
@@ -273,9 +273,10 @@ local function Untracked(icon)
 	end
 	return u
 end
--- The tracker or the followed quest changed: borrow again (an untracked quest's icons go, a tracked one's come).
-for _, event in ipairs({ "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED" }) do
-	Runtime.On(event, "game.addon pins", function() dirty = true end)
+-- The tracker, the followed quest or the log changed: asked again, borrowed again (an untracked quest's icons go, a
+-- tracked one's come). Not on every pass: a pass a second asking the log for each quest is what borrowing allocated most.
+for _, event in ipairs({ "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED", "QUEST_ACCEPTED", "QUEST_REMOVED" }) do
+	Runtime.On(event, "game.addon pins", function() dirty = true; wipe(untracked) end)
 end
 
 -- Borrow what should be on the socket, give back what shouldn't (another socket's or map's too:
@@ -387,7 +388,6 @@ local function WorldPins(view)
 			end
 		end
 		trackedOnly = view.trackedOnly == true
-		wipe(untracked)
 		local level, continent = s.level or s.frame:GetFrameLevel() + 1, zoom < CONTINENT_ZOOM
 		if Any() then Pass("borrow", function() Sync(level, continent) end, ms) end
 	end

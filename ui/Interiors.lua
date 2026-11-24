@@ -3,13 +3,16 @@
 -- the tiles, so a zoom or pan moves its canvas. Which buildings: the one you're in on the map shown
 -- (Model.interior, Game's); with the map big, every building of the capital
 -- you're in, or else of the one at the view's centre (Atlas.City), indoors or out. The terrain dimmed x0.35 only
--- while you're in a building and the map is small (big, its outdoors stay bright, indoors or in a city). The prototype's
+-- while you're in a building with the ground over you (the client's indoors, or underground: not a street, a
+-- courtyard or a gate) and the map is small (big, its outdoors stay bright, indoors or in a city). The prototype's
 -- drawing (docs/evidence/indoors/addon/Test.lua): each picture a parallelogram drawn as the axis-aligned box
 -- around it, the box's corner texture coordinates solved for, CLAMPTOBLACKADDITIVE so outside the picture is
--- clear. By level from your floor (real floors, world height, so buildings compare): rooms on yours (within
--- 22 yd) whole; another faded below (x0.35) or ghosted above (x0.15) only where it overlaps a room on your
--- level, else whole. Outdoors your level is the surface: underground rooms faded where they're under it,
--- the rest whole; a city looked at from away, whole. Drawn
+-- clear. In a building, what's lit is what's connected: your room and the rooms you can walk to from it
+-- through doorways on your side of the ground, but for one stacked over or under a nearer lit one (Lit, below);
+-- the rest faded (x0.35), or ghosted (x0.15) where it lies over a lit room. Outdoors in a city the rooms above
+-- ground are whole and the underground ones faded; a city looked at from away, whole. In a building on the
+-- surface, the map small: the underground rooms not drawn. A change of any of it crosses over (Engine's
+-- layer.cross: the new in, then the old out, a fifth of a second). Drawn
 -- below, then above, then the rest by floor, your room (or every candidate) over every other room. The
 -- boxes are worked out once a building; a new Model.interior, city or veil (the layer's rev) lays it out again.
 -- Nothing to draw: the layer idle, the tiles as they are.
@@ -27,8 +30,8 @@ local Get, Keep, Yield = Engine.Get, Engine.Keep, Runtime.Yield
 local VEIL = 0.65 -- the terrain under a building (Test.lua's opt.dim, 0.35 left): a black veil of this alpha (the settings': "interiors.dim")
 local SMALL = 60 -- yd: a building whose box is within this each way zooms the small map in
 local YD = Atlas.TILE_YARDS
-local LEVEL = 22 -- yd: a room's floor within this of yours is on your level (Test.lua's opt.cull, tuned in Ironforge)
-local BELOW, ABOVE = 0.35, 0.15 -- the alpha of rooms on levels below yours (faded) and above (ghosted)
+local LEVEL = 22 -- yd: the dimmed rooms' sublevels start this far under and over your floor
+local BELOW, ABOVE = 0.35, 0.15 -- the alpha of a room that isn't lit (faded), and of one lying over a lit room (ghosted)
 local MINE = 7 -- the sublevel of your room's pictures, over every other room's (Test.lua's)
 local STEP = 16 -- yd of floor a sublevel
 local TEXELS = 1600 / 3 * 2 -- a picture's pixels a tile unit (2 a yard)
@@ -54,17 +57,36 @@ local function City()
 	end
 end
 
--- What's drawn: { i = Model.interior on the map shown, or nil; c, here = City(); veil: the terrain dimmed (in
--- a building, the map small) }, the same table while they are; false: nothing.
+-- Whether you're under the ground in building b: your room is, or every candidate (seeds; unsure between a gate
+-- of the Ruins of Lordaeron and the canal under it: on the surface, where you walked in from).
+local function Under(b, seeds)
+	for _, id in ipairs(seeds) do
+		if not b.rooms[id].underground then return false end
+	end
+	return true
+end
+
+-- Whether interior i has ground over it: the client says indoors there (no mounting: a house, a shop), or it's
+-- under the ground (Ironforge, where it doesn't). Not a street, a courtyard or a gate you ride through.
+local function Covered(i)
+	return i.indoors or Under(Atlas.Building(i.inst, i.building), i.rooms)
+end
+
+-- What's drawn: { i = Model.interior on the map shown, or nil; c, here = City(); small: in a building, the map
+-- small; veil: the terrain dimmed (small, and the ground over you: Covered) }, the same table while they are;
+-- false: nothing.
 local scene = false
+local covered, coveredOf -- Covered(coveredOf) (i is the same table while unchanged)
 local function Scene()
 	local i, c, here = Model.interior, City()
 	if not (i and i.inst == Camera.inst) then i = nil end
-	local veil = i ~= nil and not UI.BigMap.big
+	local small = i ~= nil and not UI.BigMap.big
+	if small and i ~= coveredOf then covered, coveredOf = Covered(i), i end
+	local veil = small and covered
 	if not (i or c) then
 		scene = false
-	elseif not scene or scene.i ~= i or scene.c ~= c or scene.here ~= here or scene.veil ~= veil then
-		scene = { i = i, c = c, here = here, veil = veil }
+	elseif not scene or scene.i ~= i or scene.c ~= c or scene.here ~= here or scene.veil ~= veil or scene.small ~= small then
+		scene = { i = i, c = c, here = here, veil = veil, small = small }
 	end
 	return scene
 end
@@ -116,15 +138,53 @@ local function By(f, ref, first, n)
 	return first + math.max(0, math.min(n - 1, math.floor((f - ref) / STEP)))
 end
 
--- Each room's look, [key][room] = { alpha, sublevel }. In a building (s.i): on your level whole, by floor;
--- another overlapping (its over, the city's over) one on your level faded below, ghosted above; the rest
--- whole; yours on top. Outdoors in the city: an underground room faded where it's under one above ground
--- (its over), the rest whole. A city looked at from away (not s.here): every room whole, by floor.
-local NONE = {}
+-- The rooms lit from where you are in building b (seeds: your room, or the candidates): [room] = true. Out from
+-- them through doorways, the nearest first, among the rooms on your side of the ground (underground as yours is):
+-- a room is lit unless it's stacked with one already lit (its clash: a storey over or under it), and the way goes
+-- on past it either way, so upstairs in a shop its street stays lit and its ground floor doesn't. What's lit is
+-- where you can walk to, and no two lit rooms lie over each other: stepping through a doorway changes little, a
+-- change of layer (down into the Cleft of Shadow, up out of Undercity) the lot.
+local function Lit(b, seeds)
+	local rooms, lit, seen, q, n = b.rooms, {}, {}, {}, 0
+	local under = Under(b, seeds)
+	for _, id in ipairs(seeds) do
+		seen[id] = true
+		if rooms[id].underground == under then
+			lit[id] = true
+			n = n + 1
+			q[n] = id
+		end
+	end
+	local at = 1
+	while at <= n do
+		for _, id in ipairs(rooms[q[at]].doors) do
+			local r = rooms[id]
+			if not seen[id] then
+				seen[id] = true
+				if r.underground == under then
+					n = n + 1
+					q[n] = id
+					local free = true
+					for _, o in ipairs(r.clash) do free = free and not lit[o] end
+					lit[id] = free or nil
+				end
+			end
+		end
+		at = at + 1
+		if at % 32 == 0 then Yield() end
+	end
+	return lit
+end
+
+-- Each room's look, [key][room] = { alpha, sublevel }; none: not drawn. In a building (s.i): the rooms lit from
+-- yours (Lit) whole, by floor, yours on top; every other room faded, or ghosted where it lies over a lit one (a
+-- storey above: seen through); and on the surface with the map small, the underground rooms not drawn (through
+-- a gate of the Ruins of Lordaeron, no Undercity under the veiled ground). Outdoors in the city: the rooms above ground whole, the underground ones faded. A city looked
+-- at from away (not s.here): every room whole, by floor.
 local function Looks(s, list)
 	local i, c, looks = s.i, s.c, {}
 	local yours = i and i.floor
-	if not i then -- the surface's floor: the mean of the rooms above ground (by which the rest go)
+	if not i then -- the surface's floor: the mean of the rooms above ground (by which the sublevels go)
 		local sum, n = 0, 0
 		for _, b in ipairs(list) do
 			for _, r in pairs(b.rooms) do
@@ -133,27 +193,29 @@ local function Looks(s, list)
 		end
 		yours = n > 0 and sum / n or 0 -- /: never 0 (n > 0)
 	end
-	local function On(b, room) return math.abs(b.rooms[room].floor - yours) <= LEVEL end
-	local byKey = {}
-	for _, b in ipairs(list) do byKey[b.key] = b end
 	for _, b in ipairs(list) do
-		local l, cross = {}, c and c.over[b.key]
+		local l = {}
 		local away = c and not s.here and Has(c.buildings, b.key)
+		local lit = i and b.key == i.building and Lit(b, i.rooms)
+		local surface = s.small and not Under(Atlas.Building(i.inst, i.building), i.rooms)
 		for room, r in pairs(b.rooms) do
-			local f, near, under = r.floor, false, false
+			local f, dim, over = r.floor, false, false
 			if away then -- (whole)
-			elseif i and not On(b, room) then
-				for _, o in ipairs(r.over) do near = near or On(b, o) end
-				for _, o in ipairs(cross and cross[room] or NONE) do near = near or byKey[o[1]] ~= nil and On(byKey[o[1]], o[2]) end
-			elseif not i and r.underground then
-				for _, o in ipairs(r.over) do under = under or not b.rooms[o].underground end
+			elseif i then
+				dim = not (lit and lit[room])
+				if dim and lit then
+					for _, o in ipairs(r.over) do over = over or lit[o] and b.rooms[o].floor < f end
+				end
+			else
+				dim = r.underground
 			end
-			if i and b.key == i.building and Has(i.rooms, room) then
+			if surface and r.underground then -- (not drawn)
+			elseif lit and lit[room] and Has(i.rooms, room) then
 				l[room] = { 1, MINE }
-			elseif near and f < yours or under then
-				l[room] = { BELOW, By(f, yours - LEVEL - 4 * STEP, -8, 5) }
-			elseif near then
+			elseif over then
 				l[room] = { ABOVE, By(f, yours + LEVEL, -3, 3) }
+			elseif dim then
+				l[room] = { BELOW, By(f, yours - LEVEL - 4 * STEP, -8, 5) }
 			else
 				l[room] = { 1, By(f, yours - 3 * STEP, 0, 7) }
 			end
@@ -220,10 +282,10 @@ local layer = Engine.Layer("interiors", 4, function(c, inst, zoom, c0, r0, c1, r
 		local looks = s.looks[b.key]
 		for _, p in ipairs(Built(b)) do
 			if p.x1 > c0 and p.x0 < c1 and p.y1 > r0 and p.y0 < r1 then
-				local t = Keep(c, "pic", p)
+				local t = looks[p.room] and Keep(c, "pic", p)
 				if t then
 					Pic(c, t, p, zoom, looks[p.room])
-				else
+				elseif looks[p.room] then
 					nleft = nleft + 1
 					left[nleft] = p
 				end
@@ -254,6 +316,7 @@ local function SetDim(a)
 	veilA, veilRev = a, veilRev + 1
 end
 layer.idle = function() return not Scene() end
+layer.cross = true -- a change of scene (in or out of a building, a doorway, a city in view) crosses over, no cut
 layer.City = City -- (ui/Labels.lua: the city's area names)
 UI.Interiors = layer
 

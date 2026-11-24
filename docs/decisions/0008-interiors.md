@@ -65,14 +65,14 @@ like terrain tiles.
 - Your 2D position (UnitPosition), not your height (it isn't real on this client).
 - `GetSubZoneText()`: the room's name.
 - `NEW_WMO_CHUNK` fires when you enter or leave a **building**, not a room.
-- `IsIndoors()` means "can't mount", so it's false in Ironforge.
+- `IsIndoors()` means "can't mount", so it's false in Ironforge and on a city's streets, true in a shop (the group flags don't say which: nearly every city room has 0x2000).
 - Inside instances there's no position, so they're out of scope.
 
 ## Decision
 
 - **Atlas** ships every open-world map's buildings with pictures (generated, like the tiles):
   per building its placement, and per room its box's floor and top (zmin, zmax), its real floor, whether
-  it's underground, the rooms of the building it overlaps, the subzone name, the rooms
+  it's underground, the rooms of the building it overlaps and those of them it's stacked with, the subzone name, the rooms
   it has a portal to, its floor mask (4-yd cells in the building's own coordinates, from the
   pictures' alpha) and its pictures (each as an origin and two edge vectors in tile space). Packed
   per building and decoded on first use. Per capital, its buildings (an underground room or ≥ 3,000
@@ -80,6 +80,9 @@ like terrain tiles.
 - **Which room you're in** (Game, each change of position; proven in game):
   1. the rooms whose floor mask covers your spot;
   2. of those, the ones named like your subzone, if any;
+  2a. of those, the roofed ones (not open to the sky: MOGI flag 0x40 unset) if `IsIndoors()`, else the unroofed, if any: a street's
+     mask covers the buildings standing on it (Orgrimmar's auction house, room 130, under the Valley of
+     Strength's street, 127; both named alike), and the client knows which you're in;
   3. the room you were in, if it's still one of them;
   4. otherwise the ones your room has a portal to, if any;
   5. one left: your room. Several: unsure (the candidates kept).
@@ -93,7 +96,8 @@ like terrain tiles.
   capital at the view's centre (looked at from away), indoors or out. Small (minimap mode) or off: only the
   one you're in. Zone borders are likewise the big map's only (laid out small too, hidden, so M needn't
   build them).
-  - the terrain tiles dimmed (×0.35) only while you're in a building, and the map small (amended 2026-10-22,
+  - the terrain tiles dimmed (×0.35) only while you're in a building with the ground over you (`IsIndoors()`,
+    or underground: not a street, a courtyard or a gate you ride through), and the map small (amended 2026-10-22,
     #14: big, the outdoors stay bright, indoors or in a city: the veil is part of the layer's scene);
   - (amended 2026-10-22, #13) a small building outside the capitals (its box within 60 yd each way: a house,
     an inn) zooms the small map all the way in as you walk in, a glide, when following you on your map; leaving
@@ -101,12 +105,20 @@ like terrain tiles.
     the door: nothing; grown while inside, left alone, leaving sets the small rect's zoom so shrinking lands
     there; hidden, the zoom set straight;
   - the rooms drawn over them, under quest areas and pins;
-  - levels by real floors (world height, so buildings compare): a room within **22 yd** of your floor is
-    on your level, drawn whole. Another is faded below (×0.35) or ghosted above (×0.15) only where it
-    overlaps a room on your level (its `over`, and the city's across buildings); one that overlaps
-    nothing on your level is drawn whole. Outdoors your level is the surface: an underground room faded
-    ×0.35 where it's under a room above ground (its `over`), the rest whole (Ironforge, all under the
-    mountain, whole). A capital looked at from away: every room whole;
+  - what's lit is what's connected: your room and the rooms you can walk to from it through doorways (the
+    portals, either way round), the nearest first, on your side of the ground (underground as your room
+    is). A room stacked with a nearer lit one isn't lit, and the way goes on past it: two indoor rooms
+    sharing 30% of the smaller's floor with floors over **12 yd** apart (a storey), two open to the sky
+    one of them underground (the Cleft of Shadow under the Drag), an indoor room underground under a
+    street; an indoor room on a street stands on it (a street's floor is its low ground, not a storey).
+    Every other room is faded (×0.35), or ghosted (×0.15) where it lies over a lit room. So a doorway
+    changes almost nothing (on the capitals' rooms, 0.1 to 4 rooms a doorway on average; the rule before
+    it, every room within 22 yd of your floor whole, changed 1 to 27 and lit 1 to 66 stacked pairs at
+    once), and a change of layer changes the lot. Outdoors in a capital: the rooms above ground whole,
+    the underground ones faded. A capital looked at from away: every room whole. In a building on the
+    surface, the map small: no underground room drawn (a gate of the Ruins of Lordaeron shows no Undercity);
+    unsure between a surface room and an underground one, you're on the surface. A change of any of it
+    crosses over in 0.2 s (the new scene in, then the old out: what both draw never thins);
   - drawn below, then the ghosts above, then the rest by floor; your room, or every candidate, over
     every other room (the Forge hall's picture covers the High Seat's).
   - with the city map shown, the areas named on its rooms (The Great Forge, the Apothecarium, the Cleft of
